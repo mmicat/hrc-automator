@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRC Job Card Automator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans p-10">
+
+    <div class="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl border-t-4 border-red-600">
+        <h1 class="text-3xl font-bold mb-6 text-red-500 text-center">HOT RIDES CUSTOMS: Job Card</h1>
+        
+        <form id="jobCardForm" class="grid grid-cols-2 gap-6">
+            <div class="col-span-2 border-b border-gray-700 pb-2"><h2 class="text-xl font-semibold">Client Details</h2></div>
+            <input type="text" id="full_name" placeholder="Customer Full Name" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="text" id="phone_no" placeholder="Phone Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="text" id="oil_card_no" placeholder="Oil Card Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
+
+            <div class="col-span-2 border-b border-gray-700 pb-2 mt-4"><h2 class="text-xl font-semibold">Vehicle Details</h2></div>
+            <input type="text" id="vin_no" placeholder="VIN Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="text" id="make" placeholder="Make (e.g. Nissan)" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="text" id="model" placeholder="Model (e.g. Patrol)" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="number" id="year" placeholder="Year" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
+            <input type="text" id="color" placeholder="Color" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
+            <input type="text" id="reg_no" placeholder="Plate Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
+
+            <div class="col-span-2 border-b border-gray-700 pb-2 mt-4"><h2 class="text-xl font-semibold">Job Details</h2></div>
+            <input type="date" id="date_in" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+            <input type="number" id="mileage" placeholder="Current Mileage" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
+
+            <button type="submit" class="col-span-2 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg transition duration-300 uppercase tracking-widest mt-6">Generate Job Card</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('jobCardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                full_name: document.getElementById('full_name').value,
+                phone_no: document.getElementById('phone_no').value,
+                oil_card_no: document.getElementById('oil_card_no').value,
+                vin_no: document.getElementById('vin_no').value,
+                make: document.getElementById('make').value,
+                model: document.getElementById('model').value,
+                year: document.getElementById('year').value,
+                color: document.getElementById('color').value,
+                reg_no: document.getElementById('reg_no').value,
+                date_in: document.getElementById('date_in').value,
+                mileage: document.getElementById('mileage').value
+            };
+
+            const response = await fetch('/create-job-card', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert(`Success! Job Card #${result.job_no} Created.`);
+                location.reload(); // Refresh form
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        });
+    </script>
+</body>
+</html>
