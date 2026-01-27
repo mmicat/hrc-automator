@@ -9,9 +9,39 @@
 </head>
 <body class="bg-gray-900 text-white font-sans p-10">
 
-    <div class="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl border-t-4 border-red-600">
-        <h1 class="text-3xl font-bold mb-6 text-red-500 text-center">HOT RIDES CUSTOMS: Job Card</h1>
-        
+    <div id="dashboard-view" class="max-w-6xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-red-500">Dashboard</h1>
+            <button onclick="showForm()" class="bg-red-600 px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">
+                + New Job Card
+            </button>
+        </div>
+
+        <input type="text" id="dashboardSearch" placeholder="Search by Name, Phone, or Plate..." 
+               class="w-full p-3 mb-6 rounded bg-gray-700 border border-gray-600 focus:border-red-500 outline-none">
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-700 text-gray-400 uppercase text-sm">
+                        <th class="p-3">Customer</th>
+                        <th class="p-3">Contact</th>
+                        <th class="p-3">Vehicle</th>
+                        <th class="p-3">Plate No</th>
+                        <th class="p-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="clientTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="form-view" class="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl border-t-4 border-red-600 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="showDashboard()" class="text-gray-400 hover:text-white">← Back to Dashboard</button>
+            <h1 class="text-2xl font-bold text-red-500">Create Job Card</h1>
+        </div>
         <form id="jobCardForm" class="grid grid-cols-2 gap-6">
             <div class="col-span-2 border-b border-gray-700 pb-2"><h2 class="text-xl font-semibold">Client Details</h2></div>
             <div class="text-sm font-mono text-gray-400">
@@ -34,8 +64,10 @@
             <input type="number" id="mileage" placeholder="Current Mileage" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
 
             <button type="submit" class="col-span-2 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg transition duration-300 uppercase tracking-widest mt-6">Generate Job Card</button>
+            <button type="button" onclick="clearForm()" class="px-8 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 rounded-lg transition duration-300 uppercase tracking-widest">Clear</button>
         </form>
     </div>
+
     <div id="pdfModal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50">
         <div class="bg-gray-800 p-4 rounded-lg w-11/12 h-5/6 flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -51,148 +83,185 @@
     </div>
 
     <script>
-        // --- HELPER FUNCTIONS ---
+        // --- GLOBAL FUNCTIONS (Outside the wrapper so buttons can see them) ---
 
-// 1. Fetches the next Job ID from your MariaDB database
-async function updateNextJobNumber() {
-    try {
-        const response = await fetch('/next-job-no');
-        const data = await response.json();
-        const display = document.getElementById('next_job_no_val');
-        if (display) display.innerText = data.nextId;
-    } catch (err) {
-        console.error("Fetch next ID failed", err);
-    }
-}
-
-// 2. Maps form data onto your TEMPLATE.pdf using coordinates
-async function generatePDF(data, jobNo) {
-    try {
-        const existingPdfBytes = await fetch('/TEMPLATE.pdf').then(res => res.arrayBuffer());
-        const { PDFDocument, rgb } = PDFLib;
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        const firstPage = pdfDoc.getPages()[0];
-
-        const draw = (text, x, y) => {
-            if (!text) return;
-            firstPage.drawText(String(text), { x, y, size: 11, color: rgb(0, 0, 0) });
-        };
-
-        // --- MAPPING DATA TO YOUR TEMPLATE ---
-        draw(jobNo, 492, 688);
-        draw(data.date_in, 492, 675);
-        draw(data.full_name, 20, 605);
-        draw(data.phone_no, 350, 605);
-        draw(data.make, 20, 552);
-        draw(data.model, 220, 552);
-        draw(data.year, 416, 552);
-        draw(data.color, 20, 497);
-        draw(data.reg_no, 220, 497);
-        draw(`${data.mileage} km`, 416, 497);
-        draw(data.vin_no, 20, 458);
-
-        const pdfBytes = await pdfDoc.save();
-        const pdfUrl = URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
-        
-        // Show Preview Modal
-        document.getElementById('pdfFrame').src = pdfUrl;
-        document.getElementById('pdfModal').classList.remove('hidden');
-
-        // Handle Download
-        document.getElementById('downloadBtn').onclick = () => {
-            const link = document.createElement('a');
-            link.href = pdfUrl;
-            link.download = `HRC_JobCard_${jobNo}.pdf`;
-            link.click();
-            closeModal();
-        };
-    } catch (error) {
-        console.error("PDF Generation failed:", error);
-        alert("Failed to generate PDF. Check if TEMPLATE.pdf exists in public folder.");
-    }
-}
-
-function closeModal() {
-    document.getElementById('pdfModal').classList.add('hidden');
-    location.reload(); // Refresh for the next job card
-}
-
-// --- INITIALIZATION (DOMContentLoaded) ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Initial fetch of job number
-    updateNextJobNumber();
-
-    // 1. Phone Number Autofill Logic
-    const phoneInput = document.getElementById('phone_no');
-    if (phoneInput) {
-        phoneInput.addEventListener('blur', async (e) => {
-            const phone = e.target.value;
-            if (phone.length < 5) return;
-
+        async function updateNextJobNumber() {
             try {
-                const response = await fetch(`/search-client/${phone}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Auto-fill all fields [cite: 14, 15, 16, 17, 18, 19, 20, 23]
-                    document.getElementById('full_name').value = data.full_name || '';
-                    document.getElementById('oil_card_no').value = data.oil_card_no || '';
-                    document.getElementById('vin_no').value = data.vin_no || '';
-                    document.getElementById('make').value = data.make || '';
-                    document.getElementById('model').value = data.model || '';
-                    document.getElementById('year').value = data.year || '';
-                    document.getElementById('color').value = data.color || '';
-                    document.getElementById('reg_no').value = data.reg_no || '';
-                    
-                    console.log("Client data auto-filled for:", data.full_name);
-                }
+                const response = await fetch('/next-job-no');
+                const data = await response.json();
+                const display = document.getElementById('next_job_no_val');
+                if (display) display.innerText = data.nextId;
             } catch (err) {
-                console.error("Search failed:", err);
+                console.error("Fetch next ID failed", err);
             }
-        });
-    }
+        }
 
-    // 2. Form Submission & PDF Generation
-    const form = document.getElementById('jobCardForm');
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-    
-            // Grab the number currently shown in your "Next Job Card" span
-            const nextJobNo = document.getElementById('next_job_no_val').innerText;
+        async function loadDashboard() {
+            const response = await fetch('/all-clients');
+            const clients = await response.json();
+            const tbody = document.getElementById('clientTableBody');
+            tbody.innerHTML = clients.map(c => `
+                <tr class="border-b border-gray-700 hover:bg-gray-750 transition">
+                    <td class="p-3 font-semibold">${c.full_name || 'N/A'}</td>
+                    <td class="p-3 text-gray-400">${c.phone_no || 'N/A'}</td>
+                    <td class="p-3">${c.make || ''} ${c.model || ''}</td>
+                    <td class="p-3 font-mono text-red-400">${c.reg_no || 'N/A'}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="selectCustomer('${c.phone_no}')" class="text-red-500 hover:underline font-bold">
+                            Select & Create →
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
-            const formData = {
-                job_no: nextJobNo,
-                full_name: document.getElementById('full_name').value,
-                phone_no: document.getElementById('phone_no').value,
-                oil_card_no: document.getElementById('oil_card_no').value,
-                vin_no: document.getElementById('vin_no').value,
-                make: document.getElementById('make').value,
-                model: document.getElementById('model').value,
-                year: document.getElementById('year').value,
-                color: document.getElementById('color').value,
-                reg_no: document.getElementById('reg_no').value,
-                date_in: document.getElementById('date_in').value,
-                mileage: document.getElementById('mileage').value
-            };
+        window.showForm = () => {
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('form-view').classList.remove('hidden');
+        };
 
-            const response = await fetch('/create-job-card', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+        window.clearForm = () => {
+            const form = document.getElementById('jobCardForm');
+            if (form) {
+                // Resets all text, number, and date inputs
+                form.reset();
+                
+                // Crucial: Re-fetch the Job Number to ensure it's still accurate
+                updateNextJobNumber();
+                
+                console.log("Form cleared and Job Number refreshed.");
+            }
+        };
+
+        window.showDashboard = () => {
+            document.getElementById('form-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            loadDashboard();
+        };
+
+        window.selectCustomer = async (phone) => {
+            showForm();
+            const res = await fetch(`/search-client/${phone}`);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('full_name').value = data.full_name || '';
+                document.getElementById('phone_no').value = data.phone_no || '';
+                document.getElementById('oil_card_no').value = data.oil_card_no || '';
+                document.getElementById('vin_no').value = data.vin_no || '';
+                document.getElementById('make').value = data.make || '';
+                document.getElementById('model').value = data.model || '';
+                document.getElementById('year').value = data.year || '';
+                document.getElementById('color').value = data.color || '';
+                document.getElementById('reg_no').value = data.reg_no || '';
+            }
+        };
+
+        // 2. Maps form data onto your TEMPLATE.pdf using coordinates
+        async function generatePDF(data, jobNo) {
+            // 1. Convert YYYY-MM-DD to DD-MM-YYYY for the PDF
+            let displayDate = data.date_in;
+            displayDate = data.date_in.split('-').reverse().join('-');
+            
+            
+            try {
+                const existingPdfBytes = await fetch('/TEMPLATE.pdf').then(res => res.arrayBuffer());
+                const { PDFDocument, rgb } = PDFLib;
+                const pdfDoc = await PDFDocument.load(existingPdfBytes);
+                const firstPage = pdfDoc.getPages()[0];
+
+                const draw = (text, x, y) => {
+                    if (!text) return;
+                    firstPage.drawText(String(text), { x, y, size: 11, color: rgb(0, 0, 0) });
+                };
+
+                // --- MAPPING DATA TO YOUR TEMPLATE ---
+                draw(jobNo, 492, 688);
+                draw(displayDate, 492, 675);
+                draw(data.full_name, 20, 605);
+                draw(data.phone_no, 350, 605);
+                draw(data.make, 20, 552);
+                draw(data.model, 220, 552);
+                draw(data.year, 416, 552);
+                draw(data.color, 20, 497);
+                draw(data.reg_no, 220, 497);
+                draw(`${data.mileage} km`, 416, 497);
+                draw(data.vin_no, 20, 458);
+
+                const pdfBytes = await pdfDoc.save();
+                const pdfUrl = URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
+                
+                // Show Preview Modal
+                document.getElementById('pdfFrame').src = pdfUrl;
+                document.getElementById('pdfModal').classList.remove('hidden');
+
+                // Handle Download
+                document.getElementById('downloadBtn').onclick = () => {
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = `${jobNo} ${data.full_name} ${data.make} ${data.model} ${data.reg_no}.pdf`;
+                    link.click();
+                    closeModal();
+                };
+            } catch (error) {
+                console.error("PDF Generation failed:", error);
+                alert("Failed to generate PDF. Check if TEMPLATE.pdf exists in public folder.");
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('pdfModal').classList.add('hidden');
+            showDashboard(); // Refresh for the next job card
+        }
+
+        // --- INITIALIZATION ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            updateNextJobNumber();
+
+            // 1. Submit Logic
+            document.getElementById('jobCardForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nextJobNo = document.getElementById('next_job_no_val').innerText;
+                const formData = {
+                    job_no: nextJobNo,
+                    full_name: document.getElementById('full_name').value,
+                    phone_no: document.getElementById('phone_no').value,
+                    oil_card_no: document.getElementById('oil_card_no').value,
+                    vin_no: document.getElementById('vin_no').value,
+                    make: document.getElementById('make').value,
+                    model: document.getElementById('model').value,
+                    year: document.getElementById('year').value,
+                    color: document.getElementById('color').value,
+                    reg_no: document.getElementById('reg_no').value,
+                    date_in: document.getElementById('date_in').value,
+                    mileage: document.getElementById('mileage').value
+                };
+
+                const response = await fetch('/create-job-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    await generatePDF(formData, result.job_no);
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
             });
 
-            const result = await response.json();
-            if (response.ok) {
-                // Generate the PDF instead of just showing an alert
-                await generatePDF(formData, result.job_no);
-            } else {
-                alert(`Error: ${result.error}`);
-            }
+            // 2. Dashboard Search Logic
+            document.getElementById('dashboardSearch').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#clientTableBody tr');
+                rows.forEach(row => {
+                    row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+                });
+            });
         });
-    }
-});
     </script>
+
 </body>
 </html>
