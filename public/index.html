@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HRC Job Card Automator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white font-sans p-10">
 
@@ -13,6 +14,9 @@
         
         <form id="jobCardForm" class="grid grid-cols-2 gap-6">
             <div class="col-span-2 border-b border-gray-700 pb-2"><h2 class="text-xl font-semibold">Client Details</h2></div>
+            <div class="text-sm font-mono text-gray-400">
+                Next Job Card: <span id="next_job_no_val" class="text-red-500 font-bold">Loading...</span>
+            </div>
             <input type="text" id="full_name" placeholder="Customer Full Name" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
             <input type="text" id="phone_no" placeholder="Phone Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500" required>
             <input type="text" id="oil_card_no" placeholder="Oil Card Number" class="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
@@ -32,12 +36,134 @@
             <button type="submit" class="col-span-2 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg transition duration-300 uppercase tracking-widest mt-6">Generate Job Card</button>
         </form>
     </div>
+    <div id="pdfModal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-4 rounded-lg w-11/12 h-5/6 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-red-500">Print Preview - Job Card</h3>
+                <button onclick="closeModal()" class="text-white hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <iframe id="pdfFrame" class="w-full h-full rounded border border-gray-600"></iframe>
+            <div class="mt-4 flex justify-end gap-4">
+                <button onclick="closeModal()" class="px-6 py-2 bg-gray-600 rounded hover:bg-gray-700">Cancel</button>
+                <button id="downloadBtn" class="px-6 py-2 bg-red-600 rounded hover:bg-red-700 font-bold">Download & Print</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.getElementById('jobCardForm').addEventListener('submit', async (e) => {
+        // --- HELPER FUNCTIONS ---
+
+// 1. Fetches the next Job ID from your MariaDB database
+async function updateNextJobNumber() {
+    try {
+        const response = await fetch('/next-job-no');
+        const data = await response.json();
+        const display = document.getElementById('next_job_no_val');
+        if (display) display.innerText = data.nextId;
+    } catch (err) {
+        console.error("Fetch next ID failed", err);
+    }
+}
+
+// 2. Maps form data onto your TEMPLATE.pdf using coordinates
+async function generatePDF(data, jobNo) {
+    try {
+        const existingPdfBytes = await fetch('/TEMPLATE.pdf').then(res => res.arrayBuffer());
+        const { PDFDocument, rgb } = PDFLib;
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const firstPage = pdfDoc.getPages()[0];
+
+        const draw = (text, x, y) => {
+            if (!text) return;
+            firstPage.drawText(String(text), { x, y, size: 11, color: rgb(0, 0, 0) });
+        };
+
+        // --- MAPPING DATA TO YOUR TEMPLATE ---
+        draw(jobNo, 492, 688);
+        draw(data.date_in, 492, 675);
+        draw(data.full_name, 20, 605);
+        draw(data.phone_no, 350, 605);
+        draw(data.make, 20, 552);
+        draw(data.model, 220, 552);
+        draw(data.year, 416, 552);
+        draw(data.color, 20, 497);
+        draw(data.reg_no, 220, 497);
+        draw(`${data.mileage} km`, 416, 497);
+        draw(data.vin_no, 20, 458);
+
+        const pdfBytes = await pdfDoc.save();
+        const pdfUrl = URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
+        
+        // Show Preview Modal
+        document.getElementById('pdfFrame').src = pdfUrl;
+        document.getElementById('pdfModal').classList.remove('hidden');
+
+        // Handle Download
+        document.getElementById('downloadBtn').onclick = () => {
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = `HRC_JobCard_${jobNo}.pdf`;
+            link.click();
+            closeModal();
+        };
+    } catch (error) {
+        console.error("PDF Generation failed:", error);
+        alert("Failed to generate PDF. Check if TEMPLATE.pdf exists in public folder.");
+    }
+}
+
+function closeModal() {
+    document.getElementById('pdfModal').classList.add('hidden');
+    location.reload(); // Refresh for the next job card
+}
+
+// --- INITIALIZATION (DOMContentLoaded) ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial fetch of job number
+    updateNextJobNumber();
+
+    // 1. Phone Number Autofill Logic
+    const phoneInput = document.getElementById('phone_no');
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', async (e) => {
+            const phone = e.target.value;
+            if (phone.length < 5) return;
+
+            try {
+                const response = await fetch(`/search-client/${phone}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Auto-fill all fields [cite: 14, 15, 16, 17, 18, 19, 20, 23]
+                    document.getElementById('full_name').value = data.full_name || '';
+                    document.getElementById('oil_card_no').value = data.oil_card_no || '';
+                    document.getElementById('vin_no').value = data.vin_no || '';
+                    document.getElementById('make').value = data.make || '';
+                    document.getElementById('model').value = data.model || '';
+                    document.getElementById('year').value = data.year || '';
+                    document.getElementById('color').value = data.color || '';
+                    document.getElementById('reg_no').value = data.reg_no || '';
+                    
+                    console.log("Client data auto-filled for:", data.full_name);
+                }
+            } catch (err) {
+                console.error("Search failed:", err);
+            }
+        });
+    }
+
+    // 2. Form Submission & PDF Generation
+    const form = document.getElementById('jobCardForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+    
+            // Grab the number currently shown in your "Next Job Card" span
+            const nextJobNo = document.getElementById('next_job_no_val').innerText;
+
             const formData = {
+                job_no: nextJobNo,
                 full_name: document.getElementById('full_name').value,
                 phone_no: document.getElementById('phone_no').value,
                 oil_card_no: document.getElementById('oil_card_no').value,
@@ -59,12 +185,14 @@
 
             const result = await response.json();
             if (response.ok) {
-                alert(`Success! Job Card #${result.job_no} Created.`);
-                location.reload(); // Refresh form
+                // Generate the PDF instead of just showing an alert
+                await generatePDF(formData, result.job_no);
             } else {
                 alert(`Error: ${result.error}`);
             }
         });
+    }
+});
     </script>
 </body>
 </html>
