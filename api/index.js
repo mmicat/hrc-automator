@@ -1,5 +1,3 @@
-const PORT = process.env.PORT
-
 require('dotenv').config(); 
 const express = require('express');
 const session = require('express-session');
@@ -10,16 +8,16 @@ const db = require('../db');
 const app = express();
 
 app.set('trust proxy', 1); // Trust Vercel's proxy
+
 // 2. Configure Session Middleware (before routes)
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    // If this is true but Vercel's proxy isn't trusted, 
-    // the browser will REJECT the login cookie.
     secure: process.env.NODE_ENV === 'production', 
-    maxAge: 1000 * 60 * 60 * 24 
+    maxAge: 1000 * 60 * 60 * 24,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Important for Vercel!
   }
 }));
 
@@ -38,7 +36,7 @@ const isAuthenticated = (req, res, next) => {
 // --- ROUTES ---
 
 // Login Route
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [username]);
@@ -59,13 +57,13 @@ app.post('/login', async (req, res) => {
 });
 
 // Logout Route
-app.post('/logout', (req, res) => {
+app.post('/api/logout', (req, res) => {
     req.session.destroy();
     res.json({ message: "Logged out" });
 });
 
 // Protected Route: Create Job Card
-app.post('/create-job-card', isAuthenticated, async (req, res) => {
+app.post('/api/create-job-card', isAuthenticated, async (req, res) => {
     const { 
         full_name, phone_no, oil_card_no, 
         vin_no, make, model, year, color, reg_no, 
@@ -107,15 +105,10 @@ app.post('/create-job-card', isAuthenticated, async (req, res) => {
     }
 });
 
-app.get('/next-job-no', isAuthenticated, async (req, res) => {
+app.get('/api/next-job-no', isAuthenticated, async (req, res) => {
     try {
-        // Find the maximum job number currently in the table
         const [rows] = await db.query("SELECT MAX(job_no) as maxId FROM job_cards");
-        
-        // If the table is empty, start at 1091
-        // Otherwise, add 1 to the highest number found
         const nextId = rows[0].maxId ? parseInt(rows[0].maxId) + 1 : 1091;
-        
         res.json({ nextId });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -123,7 +116,7 @@ app.get('/next-job-no', isAuthenticated, async (req, res) => {
 });
 
 // Protected Route: Search Client
-app.get('/search-client/:phone', isAuthenticated, async (req, res) => {
+app.get('/api/search-client/:phone', isAuthenticated, async (req, res) => {
     try {
         const phone = req.params.phone;
         const [results] = await db.query(`
@@ -140,7 +133,7 @@ app.get('/search-client/:phone', isAuthenticated, async (req, res) => {
 });
 
 // Protected Route: Dashboard List
-app.get('/all-clients', isAuthenticated, async (req, res) => {
+app.get('/api/all-clients', isAuthenticated, async (req, res) => {
     try {
         const [rows] = await db.query(`
             SELECT c.customer_id, c.full_name, c.phone_no, v.make, v.model, v.reg_no 
@@ -154,4 +147,5 @@ app.get('/all-clients', isAuthenticated, async (req, res) => {
     }
 });
 
+// For Vercel serverless deployment
 module.exports = app;
