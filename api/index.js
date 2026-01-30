@@ -1,14 +1,17 @@
 require('dotenv').config(); 
 const express = require('express');
+const cors = require('cors');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 
 const app = express();
 
+// CORS configuration
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://hrc-automator.vercel.app/"],
+    origin: ["http://localhost:3000", "https://hrc-automator.vercel.app"],
+    credentials: true
   })
 );
 
@@ -210,16 +213,6 @@ app.use((err, req, res, next) => {
     console.error('Server error:', err);
     res.status(500).json({ error: 'Internal server error' });
 });
-
-// Simple test endpoint to verify Vercel serverless functions work
-module.exports = (req, res) => {
-  res.status(200).json({ 
-    message: "✅ Vercel serverless function is working!",
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    url: req.url
-  });
-};
 
 // Export for Vercel serverless functions
 module.exports = app;
