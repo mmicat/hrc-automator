@@ -9,7 +9,16 @@
 </head>
 <body class="bg-gray-900 text-white font-sans p-10">
 
-    <div id="dashboard-view" class="max-w-6xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
+    <div id="login-view" class="max-w-md mx-auto mt-20 bg-gray-800 p-8 rounded-lg shadow-xl border-t-4 border-red-600">
+        <h1 class="text-3xl font-bold text-red-500 mb-6 text-center">HRC Login</h1>
+        <form id="loginForm" class="flex flex-col gap-4">
+            <input type="text" id="login_user" placeholder="Username" class="p-3 rounded bg-gray-700 border border-gray-600 focus:border-red-500 outline-none" required>
+            <input type="password" id="login_pass" placeholder="Password" class="p-3 rounded bg-gray-700 border border-gray-600 focus:border-red-500 outline-none" required>
+            <button type="submit" class="bg-red-600 hover:bg-red-700 py-3 rounded font-bold uppercase">Enter System</button>
+        </form>
+    </div>
+
+    <div id="dashboard-view" class="max-w-6xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl hidden">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-red-500">Dashboard</h1>
             <button onclick="showForm()" class="bg-red-600 px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">
@@ -85,14 +94,40 @@
     <script>
         // --- GLOBAL FUNCTIONS (Outside the wrapper so buttons can see them) ---
 
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login_user').value;
+            const password = document.getElementById('login_pass').value;
+
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (res.ok) {
+                document.getElementById('login-view').classList.add('hidden');
+                await updateNextJobNumber(); // Fetch the next ID now that we are authorized
+                showDashboard();
+            } else {
+                alert("Login Failed: Check your credentials.");
+            }
+        });
+
         async function updateNextJobNumber() {
             try {
                 const response = await fetch('/next-job-no');
+                if (!response.ok) return;
+
                 const data = await response.json();
-                const display = document.getElementById('next_job_no_val');
-                if (display) display.innerText = data.nextId;
+                const displayElement = document.getElementById('next_job_no_val');
+                
+                if (displayElement) {
+                    // pulls the "Highest + 1" calculated by the server
+                    displayElement.innerText = data.nextId;
+                }
             } catch (err) {
-                console.error("Fetch next ID failed", err);
+                console.error("Failed to sync job number:", err);
             }
         }
 
@@ -244,11 +279,15 @@
                     body: JSON.stringify(formData)
                 });
 
-                const result = await response.json();
                 if (response.ok) {
+                    const result = await response.json();
+
+                    // 1. Show the PDF first
                     await generatePDF(formData, result.job_no);
-                } else {
-                    alert(`Error: ${result.error}`);
+
+                    // 2. Refresh the 'Next Job Card' text on the form
+                    await updateNextJobNumber(); 
+
                 }
             });
 
