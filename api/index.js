@@ -1,3 +1,5 @@
+const PORT = process.env.PORT
+
 require('dotenv').config(); 
 const express = require('express');
 const session = require('express-session');
@@ -151,11 +153,5 @@ app.get('/all-clients', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-// 5. Start Server
-const PORT = process.env.PORT // || 3000;
-// app.listen(PORT, () => {
-//    console.log(`🚀 HRC Automator running on http://localhost:${PORT}`);
-// });
 
 module.exports = app;
