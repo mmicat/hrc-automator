@@ -7,14 +7,17 @@ const db = require('./db');
 // 1. Initialize the app
 const app = express();
 
-// 2. Configure Session Middleware (Must be before routes)
+app.set('trust proxy', 1); // Trust Vercel's proxy
+// 2. Configure Session Middleware (before routes)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret-for-dev', 
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
+    // If this is true but Vercel's proxy isn't trusted, 
+    // the browser will REJECT the login cookie.
     secure: process.env.NODE_ENV === 'production', 
-    maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    maxAge: 1000 * 60 * 60 * 24 
   }
 }));
 
@@ -154,3 +157,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 HRC Automator running on http://localhost:${PORT}`);
 });
+
+module.exports = app;
