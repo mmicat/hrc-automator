@@ -205,5 +205,15 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
+// Simple test endpoint to verify Vercel serverless functions work
+module.exports = (req, res) => {
+  res.status(200).json({ 
+    message: "✅ Vercel serverless function is working!",
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url
+  });
+};
+
 // Export for Vercel serverless functions
 module.exports = app;
