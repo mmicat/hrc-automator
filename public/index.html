@@ -99,7 +99,7 @@
             const username = document.getElementById('login_user').value;
             const password = document.getElementById('login_pass').value;
 
-            const res = await fetch('/login', {
+            const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -116,7 +116,7 @@
 
         async function updateNextJobNumber() {
             try {
-                const response = await fetch('/next-job-no');
+                const response = await fetch('/api/next-job-no');
                 if (!response.ok) return;
 
                 const data = await response.json();
@@ -132,7 +132,7 @@
         }
 
         async function loadDashboard() {
-            const response = await fetch('/all-clients');
+            const response = await fetch('/api/all-clients');
             const clients = await response.json();
             const tbody = document.getElementById('clientTableBody');
             tbody.innerHTML = clients.map(c => `
@@ -176,7 +176,7 @@
 
         window.selectCustomer = async (phone) => {
             showForm();
-            const res = await fetch(`/search-client/${phone}`);
+            const res = await fetch(`/api/search-client/${phone}`);
             if (res.ok) {
                 const data = await res.json();
                 document.getElementById('full_name').value = data.full_name || '';
@@ -273,7 +273,7 @@
                     mileage: document.getElementById('mileage').value
                 };
 
-                const response = await fetch('/create-job-card', {
+                const response = await fetch('/api/create-job-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
