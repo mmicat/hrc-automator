@@ -4,28 +4,28 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 
-// 1. Initialize the app
+// Initialize the app
 const app = express();
 
-app.set('trust proxy', 1); // Trust Vercel's proxy
+app.set('trust proxy', 1);
 
-// 2. Configure Session Middleware (before routes)
+// Configure Session Middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production', 
     maxAge: 1000 * 60 * 60 * 24,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Important for Vercel!
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
-// 3. Body Parsing & Static Files
+// Body Parsing & Static Files
 app.use(express.json());
 app.use(express.static('public')); 
 
-// 4. Custom Authentication Middleware
+// Custom Authentication Middleware
 const isAuthenticated = (req, res, next) => {
     if (req.session.user) {
         return next();
@@ -33,7 +33,7 @@ const isAuthenticated = (req, res, next) => {
     res.status(401).json({ error: "Unauthorized. Please log in." });
 };
 
-// --- ROUTES ---
+// --- ROUTES (with /api prefix) ---
 
 // Login Route
 app.post('/api/login', async (req, res) => {
@@ -52,6 +52,7 @@ app.post('/api/login', async (req, res) => {
             res.status(401).json({ error: "Invalid username or password" });
         }
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -101,6 +102,7 @@ app.post('/api/create-job-card', isAuthenticated, async (req, res) => {
 
         res.status(201).json({ message: "Success!", job_no: dbResult.insertId, status: "Job Card Created" });
     } catch (error) {
+        console.error('Create job card error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -111,6 +113,7 @@ app.get('/api/next-job-no', isAuthenticated, async (req, res) => {
         const nextId = rows[0].maxId ? parseInt(rows[0].maxId) + 1 : 1091;
         res.json({ nextId });
     } catch (error) {
+        console.error('Next job number error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -128,6 +131,7 @@ app.get('/api/search-client/:phone', isAuthenticated, async (req, res) => {
         if (results.length > 0) res.json(results[0]);
         else res.status(404).json({ message: "No client found" });
     } catch (error) {
+        console.error('Search client error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -143,9 +147,15 @@ app.get('/api/all-clients', isAuthenticated, async (req, res) => {
         `);
         res.json(rows);
     } catch (error) {
+        console.error('All clients error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// For Vercel serverless deployment
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Export for Vercel
 module.exports = app;
