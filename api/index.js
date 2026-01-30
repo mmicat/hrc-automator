@@ -6,6 +6,12 @@ const db = require('../db');
 
 const app = express();
 
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://hrc-automator.vercel.app/"],
+  })
+);
+
 app.set('trust proxy', 1);
 
 app.use(session({
