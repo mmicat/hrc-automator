@@ -40,7 +40,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ 
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        message: 'API is working!'
     });
 });
 
@@ -205,5 +205,5 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// This is the KEY part for Vercel!
+// Export for Vercel serverless functions
 module.exports = app;
