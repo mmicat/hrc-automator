@@ -1,23 +1,16 @@
 {
   "name": "hrc-automator",
   "version": "1.0.0",
-  "description": "",
-  "main": "api/index.js",
   "scripts": {
-    "start": "node api/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "express-session": "^1.19.0",
-    "mysql2": "^3.16.1",
+    "dotenv": "^16.0.3",
+    "express": "^4.22.1",
+    "express-session": "^1.17.3",
+    "mysql2": "^3.2.0",
     "pdf-lib": "^1.17.1"
   }
 }
