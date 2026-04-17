@@ -1,8 +1,13 @@
 {
   "name": "hrc-automator",
   "version": "1.0.0",
+  "description": "HRC Job Card Automator — Express REST API with Vanilla JS frontend and MySQL backend",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "start": "node api/index.js"
+    "start": "node api/index.js",
+    "test:db": "node api/scripts/test-connection.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
