@@ -80,8 +80,10 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const path = require('path');
+
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
 
 const isAuthenticated = (req, res, next) => {
     if (req.session && req.session.user) {
