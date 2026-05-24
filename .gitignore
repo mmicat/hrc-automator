@@ -3,3 +3,7 @@ node_modules/
 *.txt
 .gemini-scratch.js
 hash.js
+public/index.html
+public/assets/
+public/favicon.svg
+public/icons.svg
