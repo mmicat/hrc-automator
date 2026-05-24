@@ -7,6 +7,10 @@
   },
   "scripts": {
     "start": "node api/index.js",
+    "dev:backend": "node api/index.js",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "postinstall": "npm install --prefix frontend",
     "test:db": "node api/scripts/test-connection.js"
   },
   "dependencies": {
