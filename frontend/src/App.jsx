@@ -42,6 +42,22 @@ export default function App() {
     checkSession();
   }, []);
 
+  useEffect(() => {
+    const baseTitle = 'Job Card & Invoice Automator - Hot Rides Customs Garage';
+    const viewTitles = {
+      loading: 'Loading - ' + baseTitle,
+      login: 'Login - ' + baseTitle,
+      dashboard: 'Dashboard - ' + baseTitle,
+      'job-card-form': 'Create Job Card - ' + baseTitle,
+      'record-form-add': 'Add Customer/Vehicle - ' + baseTitle,
+      'record-form-edit': 'Edit Record - ' + baseTitle,
+      'overwrite-job-card': 'Overwrite Job Card - ' + baseTitle,
+      'invoice-engine': 'Invoices Engine - ' + baseTitle,
+      'invoice-form': 'Invoice - ' + baseTitle,
+    };
+    document.title = viewTitles[view] || baseTitle;
+  }, [view]);
+
   const handleLoginSuccess = () => {
     setView('dashboard');
   };
