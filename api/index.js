@@ -166,8 +166,8 @@ app.post('/api/create-job-card', isAuthenticated, async (req, res) => {
             customerId = existingClients[0].customer_id;
         } else {
             const [newClient] = await db.query(
-                "INSERT INTO clients (full_name, phone_no, oil_card_no) VALUES (?, ?, ?)",
-                [full_name, phone_no, oil_card_no]
+                "INSERT INTO clients (full_name, phone_no) VALUES (?, ?)",
+                [full_name, phone_no]
             );
             customerId = newClient.insertId;
         }
@@ -179,8 +179,8 @@ app.post('/api/create-job-card', isAuthenticated, async (req, res) => {
         
         if (existingVehicles.length === 0) {
             await db.query(
-                "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [vin_no, make, model, year, color, reg_no, customerId]
+                "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id, oil_card_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [vin_no, make, model, year, color, reg_no, customerId, oil_card_no || null]
             );
         }
 
@@ -221,8 +221,8 @@ app.post('/api/add-customer-record', isAuthenticated, async (req, res) => {
             // Optionally, we could update the client details, but for now we'll just use the ID.
         } else {
             const [newClient] = await db.query(
-                "INSERT INTO clients (full_name, phone_no, oil_card_no) VALUES (?, ?, ?)",
-                [full_name, phone_no, oil_card_no]
+                "INSERT INTO clients (full_name, phone_no) VALUES (?, ?)",
+                [full_name, phone_no]
             );
             customerId = newClient.insertId;
         }
@@ -236,8 +236,8 @@ app.post('/api/add-customer-record', isAuthenticated, async (req, res) => {
             
             if (existingVehicles.length === 0) {
                 await db.query(
-                    "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [vin_no, make, model, year, color, reg_no, customerId]
+                    "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id, oil_card_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [vin_no, make, model, year, color, reg_no, customerId, oil_card_no || null]
                 );
             }
         }
@@ -342,8 +342,8 @@ app.put('/api/update-job-card/:job_no', isAuthenticated, async (req, res) => {
             // strictly linking to them (or a completely new one)!
         } else {
             const [newClient] = await db.query(
-                "INSERT INTO clients (full_name, phone_no, oil_card_no) VALUES (?, ?, ?)",
-                [full_name, phone_no, oil_card_no]
+                "INSERT INTO clients (full_name, phone_no) VALUES (?, ?)",
+                [full_name, phone_no]
             );
             customerId = newClient.insertId;
         }
@@ -357,8 +357,8 @@ app.put('/api/update-job-card/:job_no', isAuthenticated, async (req, res) => {
             
             if (existingVehicles.length === 0) {
                 await db.query(
-                    "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [vin_no, make, model, year, color, reg_no, customerId]
+                    "INSERT INTO vehicles (vin_no, make, model, year, color, reg_no, customer_id, oil_card_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [vin_no, make, model, year, color, reg_no, customerId, oil_card_no || null]
                 );
             }
         }
@@ -623,14 +623,14 @@ app.put('/api/update-record', isAuthenticated, async (req, res) => {
         if (!customer_id) return res.status(400).json({ error: "Customer ID is required" });
 
         await db.query(
-            "UPDATE clients SET full_name = ?, phone_no = ?, oil_card_no = ? WHERE customer_id = ?",
-            [full_name, phone_no, oil_card_no, customer_id]
+            "UPDATE clients SET full_name = ?, phone_no = ? WHERE customer_id = ?",
+            [full_name, phone_no, customer_id]
         );
 
         if (vin_no) {
             await db.query(
-                "UPDATE vehicles SET make = ?, model = ?, year = ?, color = ?, reg_no = ? WHERE vin_no = ?",
-                [make, model, year, color, reg_no, vin_no]
+                "UPDATE vehicles SET make = ?, model = ?, year = ?, color = ?, reg_no = ?, oil_card_no = ? WHERE vin_no = ?",
+                [make, model, year, color, reg_no, oil_card_no || null, vin_no]
             );
         }
 
@@ -659,6 +659,55 @@ app.delete('/api/delete-vehicle/:vin_no', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
+// --- LOYALTY ROUTES ---
+
+// Get all loyalty cards
+app.get('/api/loyalty-cards', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT v.vin_no, v.make, v.model, v.oil_card_no, v.loyalty_visits,
+                   c.full_name, c.phone_no, c.customer_id
+            FROM vehicles v
+            LEFT JOIN clients c ON v.customer_id = c.customer_id
+            WHERE v.oil_card_no IS NOT NULL AND v.oil_card_no != ''
+            ORDER BY c.full_name ASC
+        `);
+        res.json(rows);
+    } catch (error) {
+        console.error('All loyalty cards error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Increment loyalty visits
+app.put('/api/loyalty-cards/:vin_no/increment', isAuthenticated, async (req, res) => {
+    try {
+        await db.query(
+            "UPDATE vehicles SET loyalty_visits = loyalty_visits + 1 WHERE vin_no = ?",
+            [req.params.vin_no]
+        );
+        res.json({ message: "Loyalty visits incremented successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update loyalty visits manually
+app.put('/api/loyalty-cards/:vin_no/update-visits', isAuthenticated, async (req, res) => {
+    try {
+        const { visits } = req.body;
+        await db.query(
+            "UPDATE vehicles SET loyalty_visits = ? WHERE vin_no = ?",
+            [visits || 0, req.params.vin_no]
+        );
+        res.json({ message: "Loyalty visits updated successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // 404 handler
 app.use((req, res) => {

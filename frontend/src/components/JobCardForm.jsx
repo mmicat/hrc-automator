@@ -207,7 +207,7 @@ export default function JobCardForm({
           <h2 className="text-lg font-bold text-slate-200 mb-4 border-l-4 border-red-500 pl-2">
             Client Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Full Name</label>
               <input 
@@ -229,17 +229,6 @@ export default function JobCardForm({
                 placeholder="Phone Number"
                 className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-red-500 text-sm font-medium"
                 required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Oil Card No</label>
-              <input 
-                type="text" 
-                value={oilCardNo}
-                onChange={(e) => setOilCardNo(e.target.value)}
-                placeholder="Optional Reference"
-                className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-red-500 text-sm font-medium"
               />
             </div>
           </div>
@@ -316,6 +305,17 @@ export default function JobCardForm({
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}
                 placeholder="Registration Plate"
+                className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-red-500 text-sm font-medium"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Oil Card No</label>
+              <input 
+                type="text" 
+                value={oilCardNo}
+                onChange={(e) => setOilCardNo(e.target.value)}
+                placeholder="Optional Reference"
                 className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-red-500 text-sm font-medium"
               />
             </div>

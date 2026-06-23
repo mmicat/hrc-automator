@@ -7,6 +7,7 @@ import OverwriteJobCard from './components/OverwriteJobCard';
 import InvoiceEngine from './components/InvoiceEngine';
 import InvoiceForm from './components/InvoiceForm';
 import PDFPreviewModal from './components/PDFPreviewModal';
+import LoyaltyTab from './components/LoyaltyTab';
 
 export default function App() {
   const [view, setView] = useState('loading');
@@ -54,6 +55,7 @@ export default function App() {
       'overwrite-job-card': 'Overwrite Job Card - ' + baseTitle,
       'invoice-engine': 'Invoices Engine - ' + baseTitle,
       'invoice-form': 'Invoice - ' + baseTitle,
+      'loyalty-tab': 'Loyalty Cards - ' + baseTitle,
     };
     document.title = viewTitles[view] || baseTitle;
   }, [view]);
@@ -213,6 +215,11 @@ export default function App() {
             onBack={() => navigateTo('invoice-engine')}
             onShowPDF={handleShowPDF}
           />
+        );
+
+      case 'loyalty-tab':
+        return (
+          <LoyaltyTab onBack={() => navigateTo('dashboard')} />
         );
 
       default:

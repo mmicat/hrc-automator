@@ -26,6 +26,7 @@
    - 4.12 [PDF Generation — Job Cards](#412-pdf-generation--job-cards)
    - 4.13 [PDF Generation — Invoices](#413-pdf-generation--invoices)
    - 4.14 [Logout](#414-logout)
+   - 4.15 [Loyalty Cards Tracking](#415-loyalty-cards-tracking)
 5. [API Reference](#5-api-reference)
 6. [Known Coordinates & PDF Mapping](#6-known-coordinates--pdf-mapping)
 7. [Deployment & Environment Variables](#7-deployment--environment-variables)
@@ -93,7 +94,6 @@ Stores one record per unique customer, identified by phone number.
 | `customer_id` | INT (PK) | Auto-incrementing ID |
 | `full_name` | VARCHAR | Customer's full name |
 | `phone_no` | VARCHAR | Phone number (used as unique identifier in UI lookups) |
-| `oil_card_no` | VARCHAR | Optional oil card reference |
 
 ---
 
@@ -109,6 +109,8 @@ Stores one record per unique vehicle, linked to a client.
 | `color` | VARCHAR | Vehicle colour |
 | `reg_no` | VARCHAR | Plate number |
 | `customer_id` | INT (FK) | Links to `clients` |
+| `oil_card_no` | VARCHAR | Loyalty card reference (assigned per vehicle) |
+| `loyalty_visits` | INT | Count of loyalty card redemptions |
 
 ---
 
@@ -214,6 +216,12 @@ Line items belonging to an invoice. Deleted automatically when their parent invo
 ### 4.14 Logout
 - Clears the Express session cookie and reloads the viewport.
 
+### 4.15 Loyalty Cards Tracking
+- **Dedicated Loyalty Tab**: Groups all loyalty oil cards by customer profile.
+- **Per-Car Tracking**: Customers with multiple vehicles have separate loyalty cards tracked per vehicle, ensuring accurate data.
+- **Search & Filter**: Find specific cards instantly by Name, Phone, Vehicle, or Card Number.
+- **Quick Logging**: A single-click `+1 Visit` action automatically saves redemption count increments to the database.
+
 ---
 
 ## 5. API Reference
@@ -245,6 +253,9 @@ All routes (except `/api/health` and `/api/login`) require an active authenticat
 | `GET` | `/api/all-invoices` | All invoices ordered newest first |
 | `GET` | `/api/last-invoice` | Fetch the most recent invoice (for safe-delete) |
 | `DELETE` | `/api/delete-invoice/:invoice_no` | Delete an invoice and reset AUTO_INCREMENT |
+| `GET` | `/api/loyalty-cards` | Fetch all vehicles with an assigned oil card grouped by client |
+| `PUT` | `/api/loyalty-cards/:vin_no/increment` | Increment the loyalty visit count for a specific vehicle |
+| `PUT` | `/api/loyalty-cards/:vin_no/update-visits` | Manually overwrite the loyalty visit count |
 
 ---
 
