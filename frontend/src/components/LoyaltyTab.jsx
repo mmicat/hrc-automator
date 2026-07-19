@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Gift, Award, CheckCircle, Car, UserCheck, Phone, CreditCard } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function LoyaltyTab({ onBack }) {
+  const { showAlert } = useUI();
   const [cards, setCards] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,11 +33,11 @@ export default function LoyaltyTab({ onBack }) {
         if (res.ok) {
             setCards(cards.map(c => c.vin_no === vin_no ? { ...c, loyalty_visits: (c.loyalty_visits || 0) + 1 } : c));
         } else {
-            alert('Failed to increment loyalty visits');
+            showAlert('Failed to increment loyalty visits', 'error');
         }
     } catch(e) {
         console.error(e);
-        alert('An error occurred');
+        showAlert('An error occurred', 'error');
     }
   };
 

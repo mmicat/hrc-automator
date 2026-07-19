@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { ArrowLeft, Save, ShieldAlert, Printer } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
+  const { showAlert } = useUI();
   // Job Card Fields
   const [fullName, setFullName] = useState('');
   const [phoneNo, setPhoneNo] = useState('');
@@ -42,12 +44,12 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
           setDateIn(data.date_in.split('T')[0]);
         }
       } else {
-        alert('Job Card Not Found.');
+        showAlert('Job Card Not Found.', 'warning');
         onBack();
       }
     } catch (err) {
       console.error('Error fetching job card:', err);
-      alert('An error occurred while loading the job card.');
+      showAlert('An error occurred while loading the job card.', 'error');
       onBack();
     } finally {
       setLoading(false);
@@ -99,7 +101,7 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
       return URL.createObjectURL(pdfBlob);
     } catch (err) {
       console.error('PDF generation error:', err);
-      alert('Failed to generate Job Card PDF. Verify resources/TEMPLATE.pdf is uploaded.');
+      showAlert('Failed to generate Job Card PDF. Verify resources/TEMPLATE.pdf is uploaded.', 'error');
       return null;
     }
   };
@@ -141,11 +143,11 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
         }
         onBack();
       } else {
-        alert(result.error || 'Failed to update Job Card.');
+        showAlert(result.error || 'Failed to update Job Card.', 'error');
       }
     } catch (err) {
       console.error('Submit error:', err);
-      alert('An error occurred while updating the Job Card.');
+      showAlert('An error occurred while updating the Job Card.', 'error');
     } finally {
       setSaving(false);
     }

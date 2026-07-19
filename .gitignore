@@ -1,9 +1,11 @@
 node_modules/
 .env
 *.txt
+*.csv
 .gemini-scratch.js
 hash.js
 public/index.html
 public/assets/
 public/favicon.png
 public/icons.svg
+scratch/

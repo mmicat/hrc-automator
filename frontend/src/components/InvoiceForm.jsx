@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { ArrowLeft, Plus, Trash2, Printer, ShieldCheck } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function InvoiceForm({ 
   mode = 'create', 
@@ -10,6 +11,7 @@ export default function InvoiceForm({
   onShowPDF 
 }) {
   const isOverwrite = mode === 'overwrite';
+  const { showAlert } = useUI();
 
   // Invoice Fields
   const [invoiceNo, setInvoiceNo] = useState('Loading...');
@@ -84,7 +86,7 @@ export default function InvoiceForm({
             setItems(formattedItems);
           }
         } else {
-          alert('Invoice not found.');
+          showAlert('Invoice not found.', 'warning');
           onBack();
         }
       } else {
@@ -232,7 +234,7 @@ export default function InvoiceForm({
       return URL.createObjectURL(pdfBlob);
     } catch (err) {
       console.error('Invoice PDF Generation failed:', err);
-      alert('Failed to generate PDF. Make sure INVOICE_TEMPLATE.pdf is uploaded to the resources folder!');
+      showAlert('Failed to generate PDF. Make sure INVOICE_TEMPLATE.pdf is uploaded to the resources folder!', 'error');
       return null;
     }
   };
@@ -255,7 +257,7 @@ export default function InvoiceForm({
       }));
 
     if (filteredItems.length === 0) {
-      alert('Invoice must contain at least one row with a description.');
+      showAlert('Invoice must contain at least one row with a description.', 'warning');
       setSaving(false);
       return;
     }
@@ -289,11 +291,11 @@ export default function InvoiceForm({
         onBack();
       } else {
         const errData = await response.json();
-        alert(errData.error || 'Failed to save Invoice.');
+        showAlert(errData.error || 'Failed to save Invoice.', 'error');
       }
     } catch (err) {
       console.error('Error submitting invoice:', err);
-      alert('An error occurred while saving the invoice.');
+      showAlert('An error occurred while saving the invoice.', 'error');
     } finally {
       setSaving(false);
     }

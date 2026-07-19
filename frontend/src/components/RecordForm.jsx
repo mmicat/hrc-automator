@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Save, Trash2, ShieldAlert } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function RecordForm({ mode, editRecord, onBack }) {
   const isEdit = mode === 'edit';
+  const { showAlert, showConfirm } = useUI();
 
   // Client Details
   const [customerId, setCustomerId] = useState('');
@@ -57,7 +59,7 @@ export default function RecordForm({ mode, editRecord, onBack }) {
   // Client Search in Add Mode
   const handleClientSearch = async () => {
     if (!searchPhone) {
-      alert('Enter a phone number to search.');
+      showAlert('Enter a phone number to search.', 'warning');
       return;
     }
 
@@ -68,9 +70,9 @@ export default function RecordForm({ mode, editRecord, onBack }) {
         setFullName(data.full_name || '');
         setPhoneNo(data.phone_no || '');
         setOilCardNo(data.oil_card_no || '');
-        alert(`Found existing customer profile for: ${data.full_name}! You can now update or add vehicle details.`);
+        showAlert(`Found existing customer profile for: ${data.full_name}! You can now update or add vehicle details.`, 'success');
       } else {
-        alert('Customer profile not found. You can fill out a new profile below.');
+        showAlert('Customer profile not found. You can fill out a new profile below.', 'info');
       }
     } catch (err) {
       console.error('Error searching client:', err);
@@ -81,14 +83,14 @@ export default function RecordForm({ mode, editRecord, onBack }) {
   const handleDeleteCustomer = async () => {
     if (!customerId) return;
     const confirmMsg = 'CRITICAL: Are you sure you want to permanently delete this Customer Profile and potentially all tied vehicles? This cannot be undone.';
-    if (window.confirm(confirmMsg)) {
+    if (await showConfirm(confirmMsg)) {
       try {
         const res = await fetch(`/api/delete-customer/${customerId}`, { method: 'DELETE' });
         if (res.ok) {
-          alert('Customer deleted.');
+          showAlert('Customer deleted.', 'success');
           onBack();
         } else {
-          alert('Failed to delete customer.');
+          showAlert('Failed to delete customer.', 'error');
         }
       } catch (err) {
         console.error('Delete customer error:', err);
@@ -99,18 +101,18 @@ export default function RecordForm({ mode, editRecord, onBack }) {
   // Delete Vehicle
   const handleDeleteVehicle = async () => {
     if (!vinNo) {
-      alert('No vehicle to delete for this record.');
+      showAlert('No vehicle to delete for this record.', 'warning');
       return;
     }
     const confirmMsg = 'Are you sure you want to permanently delete this Vehicle? This cannot be undone.';
-    if (window.confirm(confirmMsg)) {
+    if (await showConfirm(confirmMsg)) {
       try {
         const res = await fetch(`/api/delete-vehicle/${vinNo}`, { method: 'DELETE' });
         if (res.ok) {
-          alert('Vehicle deleted.');
+          showAlert('Vehicle deleted.', 'success');
           onBack();
         } else {
-          alert('Failed to delete vehicle.');
+          showAlert('Failed to delete vehicle.', 'error');
         }
       } catch (err) {
         console.error('Delete vehicle error:', err);
@@ -149,15 +151,15 @@ export default function RecordForm({ mode, editRecord, onBack }) {
       const result = await response.json();
 
       if (response.ok) {
-        alert(isEdit ? 'Record updated successfully!' : 'Customer / Vehicle record added successfully!');
+        showAlert(isEdit ? 'Record updated successfully!' : 'Customer / Vehicle record added successfully!', 'success');
         handleClear();
         onBack();
       } else {
-        alert(result.error || 'Failed to save record.');
+        showAlert(result.error || 'Failed to save record.', 'error');
       }
     } catch (err) {
       console.error('Submit error:', err);
-      alert('An error occurred. Check your database connection.');
+      showAlert('An error occurred. Check your database connection.', 'error');
     } finally {
       setLoading(false);
     }

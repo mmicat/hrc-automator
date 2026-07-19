@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { ArrowLeft, RefreshCw, Printer, Trash } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function JobCardForm({ 
   prefillPhone, 
@@ -8,6 +9,7 @@ export default function JobCardForm({
   onBack, 
   onShowPDF 
 }) {
+  const { showAlert } = useUI();
   // Job Card Fields
   const [fullName, setFullName] = useState('');
   const [phoneNo, setPhoneNo] = useState('');
@@ -125,7 +127,7 @@ export default function JobCardForm({
       return URL.createObjectURL(pdfBlob);
     } catch (err) {
       console.error('PDF generation error:', err);
-      alert('Failed to generate Job Card PDF. Verify resources/TEMPLATE.pdf is uploaded.');
+      showAlert('Failed to generate Job Card PDF. Verify resources/TEMPLATE.pdf is uploaded.', 'error');
       return null;
     }
   };
@@ -167,11 +169,11 @@ export default function JobCardForm({
         }
         handleClear();
       } else {
-        alert(result.error || 'Failed to create Job Card.');
+        showAlert(result.error || 'Failed to create Job Card.', 'error');
       }
     } catch (err) {
       console.error('Submit error:', err);
-      alert('An error occurred. Check your database connectivity.');
+      showAlert('An error occurred. Check your database connectivity.', 'error');
     } finally {
       setLoading(false);
     }

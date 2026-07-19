@@ -3,12 +3,14 @@ import {
   ArrowLeft, FileText, CheckSquare, History, 
   Trash2, AlertTriangle, Calendar, User, Car, DollarSign 
 } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function InvoiceEngine({ 
   onBack, 
   onOpenInvoice, 
   onOverwriteInvoice 
 }) {
+  const { showAlert, showConfirm, showPrompt } = useUI();
   const [activeTab, setActiveTab] = useState('job-cards');
   const [jobCards, setJobCards] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -57,7 +59,7 @@ export default function InvoiceEngine({
     try {
       const res = await fetch('/api/last-job-card');
       if (!res.ok) {
-        alert('No job cards available to delete.');
+        showAlert('No job cards available to delete.', 'warning');
         return;
       }
       const data = await res.json();
@@ -70,18 +72,18 @@ export default function InvoiceEngine({
       const vehicleStr = `${data.make || ''} ${data.model || ''}`.trim() || 'Unknown Vehicle';
       const confirmMsg = `Are you sure you want to delete job card no. #${data.job_no} for customer ${data.full_name} with vehicle ${vehicleStr} on ${displayDate}?`;
 
-      if (window.confirm(confirmMsg)) {
+      if (await showConfirm(confirmMsg)) {
         const delRes = await fetch(`/api/delete-job-card/${data.job_no}`, { method: 'DELETE' });
         if (delRes.ok) {
-          alert(`Job card no. #${data.job_no} deleted successfully.`);
+          showAlert(`Job card no. #${data.job_no} deleted successfully.`, 'success');
           fetchJobCards();
         } else {
-          alert('Failed to delete job card.');
+          showAlert('Failed to delete job card.', 'error');
         }
       }
     } catch (err) {
       console.error('Error deleting last job card:', err);
-      alert('An error occurred.');
+      showAlert('An error occurred.', 'error');
     }
   };
 
@@ -90,7 +92,7 @@ export default function InvoiceEngine({
     try {
       const res = await fetch('/api/last-invoice');
       if (!res.ok) {
-        alert('No invoices available to delete.');
+        showAlert('No invoices available to delete.', 'warning');
         return;
       }
       const data = await res.json();
@@ -103,24 +105,24 @@ export default function InvoiceEngine({
       const vehicleStr = `${data.make || ''} ${data.model || ''}`.trim() || 'Unknown Vehicle';
       const confirmMsg = `Are you sure you want to delete invoice no. #${data.invoice_no} for customer ${data.full_name} with vehicle ${vehicleStr} dated ${displayDate}?`;
 
-      if (window.confirm(confirmMsg)) {
+      if (await showConfirm(confirmMsg)) {
         const delRes = await fetch(`/api/delete-invoice/${data.invoice_no}`, { method: 'DELETE' });
         if (delRes.ok) {
-          alert(`Invoice no. #${data.invoice_no} deleted successfully.`);
+          showAlert(`Invoice no. #${data.invoice_no} deleted successfully.`, 'success');
           fetchInvoices();
         } else {
-          alert('Failed to delete invoice.');
+          showAlert('Failed to delete invoice.', 'error');
         }
       }
     } catch (err) {
       console.error('Error deleting last invoice:', err);
-      alert('An error occurred.');
+      showAlert('An error occurred.', 'error');
     }
   };
 
   // Trigger Overwrite Invoice Prompt
-  const handleOverwriteInvoicePrompt = () => {
-    const invNo = window.prompt('Enter the exact Invoice Number to Overwrite & Reprint:');
+  const handleOverwriteInvoicePrompt = async () => {
+    const invNo = await showPrompt('Enter the exact Invoice Number to Overwrite & Reprint:');
     if (invNo) {
       onOverwriteInvoice(invNo);
     }

@@ -3,6 +3,7 @@ import {
   Search, Plus, LogOut, History, FileText,
   Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift
 } from 'lucide-react';
+import { useUI } from './UIContext';
 
 export default function Dashboard({
   onNavigate,
@@ -11,6 +12,7 @@ export default function Dashboard({
   onEditRecord,
   onOverwriteJobCard
 }) {
+  const { showAlert, showConfirm, showPrompt } = useUI();
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function Dashboard({
     try {
       const res = await fetch('/api/last-job-card');
       if (!res.ok) {
-        alert('No job cards available to delete.');
+        showAlert('No job cards available to delete.', 'warning');
         return;
       }
       const data = await res.json();
@@ -65,24 +67,24 @@ export default function Dashboard({
       const vehicleStr = `${data.make || ''} ${data.model || ''}`.trim() || 'Unknown Vehicle';
       const confirmMsg = `Are you sure you would like to delete job card no. #${data.job_no} for customer ${data.full_name} with vehicle ${vehicleStr} on ${displayDate}?`;
 
-      if (window.confirm(confirmMsg)) {
+      if (await showConfirm(confirmMsg)) {
         const deleteRes = await fetch(`/api/delete-job-card/${data.job_no}`, { method: 'DELETE' });
         if (deleteRes.ok) {
-          alert(`Job card no. #${data.job_no} has been deleted successfully.`);
+          showAlert(`Job card no. #${data.job_no} has been deleted successfully.`, 'success');
           fetchClients();
         } else {
-          alert('Failed to delete the job card.');
+          showAlert('Failed to delete the job card.', 'error');
         }
       }
     } catch (err) {
       console.error('Error deleting last job card:', err);
-      alert('An error occurred while deleting the job card.');
+      showAlert('An error occurred while deleting the job card.', 'error');
     }
   };
 
   // Prompt to overwrite a job card
-  const handleOverwritePrompt = () => {
-    const jobNo = window.prompt('Enter the exact Job Card Number to Overwrite & Reprint:');
+  const handleOverwritePrompt = async () => {
+    const jobNo = await showPrompt('Enter the exact Job Card Number to Overwrite & Reprint:');
     if (jobNo) {
       onOverwriteJobCard(jobNo);
     }
