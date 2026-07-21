@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Plus, LogOut, History, FileText,
-  Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift
+  Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift, DollarSign
 } from 'lucide-react';
 import { useUI } from './UIContext';
 
@@ -112,6 +112,14 @@ export default function Dashboard({
           >
             <History className="w-4 h-4" />
             Invoices Engine
+          </button>
+
+          <button
+            onClick={() => onNavigate('accounting-tab')}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all text-xs tracking-wider uppercase shadow-lg shadow-emerald-950/20 active:scale-95"
+          >
+            <DollarSign className="w-4 h-4" />
+            Accounting
           </button>
 
           <button

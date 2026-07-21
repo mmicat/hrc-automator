@@ -50,6 +50,29 @@ const app = express();
         const nextJcId = jcRows[0].maxId ? parseInt(jcRows[0].maxId) + 1 : 1091;
         await db.query(`ALTER TABLE job_cards AUTO_INCREMENT = ${nextJcId}`);
 
+        // Accounting tables
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS sales (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                date DATE,
+                description VARCHAR(255),
+                aed DECIMAL(10,2),
+                quantity INT,
+                total DECIMAL(10,2)
+            )
+        `);
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                date DATE,
+                category VARCHAR(100),
+                description VARCHAR(255),
+                aed DECIMAL(10,2),
+                quantity INT,
+                total DECIMAL(10,2)
+            )
+        `);
+
     } catch(e) {
         console.error("DB Init Error:", e);
     }
@@ -708,6 +731,69 @@ app.put('/api/loyalty-cards/:vin_no/update-visits', isAuthenticated, async (req,
     }
 });
 
+// === ACCOUNTING ROUTES ===
+
+app.get('/api/sales', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM sales ORDER BY date DESC, id DESC");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/sales', isAuthenticated, async (req, res) => {
+    try {
+        const { date, description, aed, quantity, total } = req.body;
+        const [result] = await db.query(
+            "INSERT INTO sales (date, description, aed, quantity, total) VALUES (?, ?, ?, ?, ?)",
+            [date, description, aed, quantity || null, total]
+        );
+        res.json({ id: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/sales/:id', isAuthenticated, async (req, res) => {
+    try {
+        await db.query("DELETE FROM sales WHERE id = ?", [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/expenses', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM expenses ORDER BY date DESC, id DESC");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/expenses', isAuthenticated, async (req, res) => {
+    try {
+        const { date, category, description, aed, quantity, total } = req.body;
+        const [result] = await db.query(
+            "INSERT INTO expenses (date, category, description, aed, quantity, total) VALUES (?, ?, ?, ?, ?, ?)",
+            [date, category, description, aed, quantity || null, total]
+        );
+        res.json({ id: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/expenses/:id', isAuthenticated, async (req, res) => {
+    try {
+        await db.query("DELETE FROM expenses WHERE id = ?", [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // 404 handler
 app.use((req, res) => {

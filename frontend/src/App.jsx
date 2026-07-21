@@ -8,6 +8,7 @@ import InvoiceEngine from './components/InvoiceEngine';
 import InvoiceForm from './components/InvoiceForm';
 import PDFPreviewModal from './components/PDFPreviewModal';
 import LoyaltyTab from './components/LoyaltyTab';
+import AccountingTab from './components/AccountingTab';
 
 export default function App() {
   const [view, setView] = useState('loading');
@@ -56,6 +57,7 @@ export default function App() {
       'invoice-engine': 'Invoices Engine - ' + baseTitle,
       'invoice-form': 'Invoice - ' + baseTitle,
       'loyalty-tab': 'Loyalty Cards - ' + baseTitle,
+      'accounting-tab': 'Sales & Expenses - ' + baseTitle,
     };
     document.title = viewTitles[view] || baseTitle;
   }, [view]);
@@ -220,6 +222,11 @@ export default function App() {
       case 'loyalty-tab':
         return (
           <LoyaltyTab onBack={() => navigateTo('dashboard')} />
+        );
+
+      case 'accounting-tab':
+        return (
+          <AccountingTab onBack={() => navigateTo('dashboard')} />
         );
 
       default:
