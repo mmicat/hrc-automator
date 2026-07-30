@@ -800,7 +800,7 @@ app.delete('/api/expenses/:id', isAuthenticated, async (req, res) => {
 // Get distinct inventory dates
 app.get('/api/inventory/dates', isAuthenticated, async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT DISTINCT date_checked FROM inventory_logs ORDER BY date_checked DESC");
+        const [rows] = await db.query("SELECT DISTINCT DATE_FORMAT(date_checked, '%Y-%m-%d') AS date_checked FROM inventory_logs ORDER BY date_checked DESC");
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -810,7 +810,7 @@ app.get('/api/inventory/dates', isAuthenticated, async (req, res) => {
 // Get inventory log by date
 app.get('/api/inventory/log/:date', isAuthenticated, async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM inventory_logs WHERE date_checked = ?", [req.params.date]);
+        const [rows] = await db.query("SELECT *, DATE_FORMAT(date_checked, '%Y-%m-%d') AS date_checked FROM inventory_logs WHERE date_checked = ?", [req.params.date]);
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
