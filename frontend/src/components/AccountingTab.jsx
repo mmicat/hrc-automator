@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  TrendingUp, TrendingDown, Plus, Trash2, Filter, Calculator, 
+  TrendingUp, TrendingDown, Plus, Trash2, Calculator, 
   Calendar, FileText, CheckCircle, Tag, DollarSign, Loader2
 } from 'lucide-react';
 import BackButton from './BackButton';
+import { useTableFilters } from './table/useTableFilters';
+import ColumnFilterHeader from './table/ColumnFilterHeader';
 import { useUI } from './UIContext';
 
 export default function AccountingTab({ onBack }) {
@@ -13,8 +15,6 @@ export default function AccountingTab({ onBack }) {
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const [filterCategory, setFilterCategory] = useState('');
   
   // Inline add state
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
@@ -55,18 +55,15 @@ export default function AccountingTab({ onBack }) {
     }
   };
 
-  const categories = useMemo(() => {
-    const cats = new Set(expenses.map(e => e.category).filter(Boolean));
-    return Array.from(cats).sort();
-  }, [expenses]);
+  const columns = [
+    { key: 'year', valueGetter: c => c.date ? new Date(c.date).getFullYear().toString() : '' },
+    { key: 'category', valueGetter: c => c.category || '' },
+    { key: 'description', valueGetter: c => c.description || '' }
+  ];
 
-  const displayedData = useMemo(() => {
-    if (activeTab === 'sales') return sales;
-    if (filterCategory) return expenses.filter(e => e.category === filterCategory);
-    return expenses;
-  }, [activeTab, sales, expenses, filterCategory]);
-
-
+  const rawData = activeTab === 'sales' ? sales : expenses;
+  const tableState = useTableFilters(rawData, columns);
+  const displayedData = tableState.processedData;
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -167,23 +164,6 @@ export default function AccountingTab({ onBack }) {
           </button>
         </div>
 
-        {activeTab === 'expenses' && (
-          <div className="relative">
-            <span className="absolute left-4 top-3.5 text-slate-400">
-              <Filter className="w-4 h-4" />
-            </span>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="appearance-none bg-slate-950/40 border border-slate-800 rounded-xl py-3 pl-10 pr-10 text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-sm min-w-[200px]"
-            >
-              <option value="">All Categories</option>
-              {categories.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Main Table */}
@@ -196,9 +176,42 @@ export default function AccountingTab({ onBack }) {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-800 text-slate-400 uppercase text-xs font-bold tracking-wider bg-slate-950/40 select-none">
-              <th className="p-4"><div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Date</div></th>
-              {activeTab === 'expenses' && <th className="p-4"><div className="flex items-center gap-2"><Tag className="w-4 h-4" /> Category</div></th>}
-              <th className="p-4"><div className="flex items-center gap-2"><FileText className="w-4 h-4" /> Description</div></th>
+              <th className="p-4 whitespace-nowrap">
+                <ColumnFilterHeader 
+                  columnKey="year" 
+                  title="Date" 
+                  icon={<Calendar className="w-4 h-4" />} 
+                  uniqueValues={tableState.getUniqueValues('year')}
+                  disableSort={true}
+                  {...tableState}
+                />
+              </th>
+              {activeTab === 'expenses' && (
+                <th className="p-4 whitespace-nowrap">
+                  <ColumnFilterHeader 
+                    columnKey="category" 
+                    title="Category" 
+                    icon={<Tag className="w-4 h-4" />} 
+                    uniqueValues={tableState.getUniqueValues('category')}
+                    disableSort={true}
+                    {...tableState}
+                  />
+                </th>
+              )}
+              {activeTab === 'expenses' ? (
+                <th className="p-4 whitespace-nowrap">
+                  <ColumnFilterHeader 
+                    columnKey="description" 
+                    title="Description" 
+                    icon={<FileText className="w-4 h-4" />} 
+                    uniqueValues={tableState.getUniqueValues('description')}
+                    disableSort={true}
+                    {...tableState}
+                  />
+                </th>
+              ) : (
+                <th className="p-4"><div className="flex items-center gap-2"><FileText className="w-4 h-4" /> Description</div></th>
+              )}
               <th className="p-4"><div className="flex items-center gap-2"><DollarSign className="w-4 h-4" /> AED</div></th>
               <th className="p-4"><div className="flex items-center gap-2"><Calculator className="w-4 h-4" /> Qty</div></th>
               <th className="p-4"><div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Total</div></th>

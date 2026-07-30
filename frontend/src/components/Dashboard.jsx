@@ -3,6 +3,8 @@ import {
   Search, Plus, LogOut, History, FileText,
   Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift, DollarSign, Package
 } from 'lucide-react';
+import { useTableFilters } from './table/useTableFilters';
+import ColumnFilterHeader from './table/ColumnFilterHeader';
 import { useUI } from './UIContext';
 
 export default function Dashboard({
@@ -48,6 +50,15 @@ export default function Dashboard({
       (c.model || '').toLowerCase().includes(term)
     );
   });
+
+  const columns = [
+    { key: 'full_name', valueGetter: c => c.full_name },
+    { key: 'phone_no', valueGetter: c => c.phone_no },
+    { key: 'vehicle', valueGetter: c => (c.make || c.model ? `${c.make || ''} ${c.model || ''}`.trim() : 'No Vehicle') },
+    { key: 'reg_no', valueGetter: c => c.reg_no || '—' }
+  ];
+
+  const tableState = useTableFilters(filteredClients, columns);
 
   // Prompt to delete the last job card created
   const handleDeleteLastJobCard = async () => {
@@ -205,10 +216,42 @@ export default function Dashboard({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-800 text-slate-400 uppercase text-xs font-bold tracking-wider bg-slate-950/40 select-none">
-              <th className="p-4"><div className="flex items-center gap-2"><UserCheck className="w-4 h-4" />Customer</div></th>
-              <th className="p-4"><div className="flex items-center gap-2"><Phone className="w-4 h-4" />Contact</div></th>
-              <th className="p-4"><div className="flex items-center gap-2"><Car className="w-4 h-4" />Vehicle</div></th>
-              <th className="p-4"><div className="flex items-center gap-2"><Hash className="w-4 h-4" />Plate No</div></th>
+              <th className="p-4 whitespace-nowrap">
+                <ColumnFilterHeader 
+                  columnKey="full_name" 
+                  title="Customer" 
+                  icon={<UserCheck className="w-4 h-4" />} 
+                  uniqueValues={tableState.getUniqueValues('full_name')}
+                  {...tableState}
+                />
+              </th>
+              <th className="p-4 whitespace-nowrap">
+                <ColumnFilterHeader 
+                  columnKey="phone_no" 
+                  title="Contact" 
+                  icon={<Phone className="w-4 h-4" />} 
+                  uniqueValues={tableState.getUniqueValues('phone_no')}
+                  {...tableState}
+                />
+              </th>
+              <th className="p-4 whitespace-nowrap">
+                <ColumnFilterHeader 
+                  columnKey="vehicle" 
+                  title="Vehicle" 
+                  icon={<Car className="w-4 h-4" />} 
+                  uniqueValues={tableState.getUniqueValues('vehicle')}
+                  {...tableState}
+                />
+              </th>
+              <th className="p-4 whitespace-nowrap">
+                <ColumnFilterHeader 
+                  columnKey="reg_no" 
+                  title="Plate No" 
+                  icon={<Hash className="w-4 h-4" />} 
+                  uniqueValues={tableState.getUniqueValues('reg_no')}
+                  {...tableState}
+                />
+              </th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -222,14 +265,14 @@ export default function Dashboard({
                   </div>
                 </td>
               </tr>
-            ) : filteredClients.length === 0 ? (
+            ) : tableState.processedData.length === 0 ? (
               <tr>
                 <td colSpan="5" className="p-12 text-center text-slate-500 italic">
                   No customer records matched your query.
                 </td>
               </tr>
             ) : (
-              filteredClients.map((c, i) => (
+              tableState.processedData.map((c, i) => (
                 <tr key={`${c.customer_id}-${c.vin_no || i}`} className="hover:bg-slate-900/40 transition-colors">
                   <td className="p-4 font-semibold text-slate-200 text-sm">
                     {c.full_name || 'N/A'}
