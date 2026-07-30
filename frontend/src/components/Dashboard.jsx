@@ -177,17 +177,22 @@ export default function Dashboard({
 
       {/* Control / Search Area */}
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
-        <div className="relative flex-grow">
-          <span className="absolute left-4 top-3.5 text-slate-400">
-            <Search className="w-5 h-5" />
-          </span>
-          <input
-            type="text"
-            placeholder="Search by Name, Phone, Vehicle, or Plate..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950/40 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-medium text-sm"
-          />
+        <div className="relative flex-grow flex flex-col">
+          <div className="relative">
+            <span className="absolute left-4 top-3.5 text-slate-400">
+              <Search className="w-5 h-5" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search by Name, Phone, Vehicle, or Plate..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950/40 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-medium text-sm"
+            />
+          </div>
+          <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider px-2 mt-2">
+            Showing {tableState.processedData.length} profile{tableState.processedData.length !== 1 ? 's' : ''}
+          </div>
         </div>
 
         <div className="flex gap-3 shrink-0">
