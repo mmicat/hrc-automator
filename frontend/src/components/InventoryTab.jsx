@@ -250,14 +250,34 @@ export default function InventoryTab({ onBack }) {
                     </tr>
                     {items.map((c, i) => {
                       const isGal = isGallonsCategory(c.category) && !c.category.toUpperCase().includes('FILTER');
+                      const qty = parseInt(c.quantity) || 0;
+                      
+                      let rowStyle = "hover:bg-slate-800/20 transition-colors";
+                      let badgeStyle = "bg-indigo-500/20 text-indigo-400 border-indigo-500/30";
+                      
+                      if (isGal) {
+                          if (qty === 0) {
+                              rowStyle = "bg-red-900/20 hover:bg-red-900/30 transition-colors";
+                              badgeStyle = "bg-red-500/20 text-red-400 border-red-500/30";
+                          } else if (qty <= 4) {
+                              rowStyle = "bg-yellow-900/20 hover:bg-yellow-900/30 transition-colors";
+                              badgeStyle = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                          }
+                      } else {
+                          if (qty === 0) {
+                              rowStyle = "bg-yellow-900/20 hover:bg-yellow-900/30 transition-colors";
+                              badgeStyle = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                          }
+                      }
+
                       return (
-                        <tr key={i} className="hover:bg-slate-800/20 transition-colors">
+                        <tr key={i} className={rowStyle}>
                           <td className="p-4 pl-8 text-slate-300 text-sm font-medium">
                             {c.item_name}
                           </td>
                           <td className="p-4 text-center">
-                            <span className="inline-flex items-center justify-center bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-4 py-1.5 rounded-lg text-sm font-bold font-mono">
-                                {c.quantity} {isGal && <span className="ml-1 text-xs text-indigo-300/50">Gal</span>}
+                            <span className={`inline-flex items-center justify-center border px-4 py-1.5 rounded-lg text-sm font-bold font-mono ${badgeStyle}`}>
+                                {c.quantity} {isGal && <span className="ml-1 text-xs opacity-50">Gal</span>}
                             </span>
                           </td>
                         </tr>
