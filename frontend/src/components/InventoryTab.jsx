@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Save, ArrowLeft, Calendar, Info, Trash2 } from 'lucide-react';
+import { Package, Plus, Save, ArrowLeft, Calendar, Info, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function InventoryTab({ onBack }) {
   const [mode, setMode] = useState('view'); // 'view' or 'add'
@@ -137,6 +137,20 @@ export default function InventoryTab({ onBack }) {
     return acc;
   }, {});
 
+  const currentIndex = dates.findIndex(d => d.date_checked.split('T')[0] === selectedDate);
+
+  const handlePreviousDate = () => {
+    if (currentIndex < dates.length - 1) {
+      setSelectedDate(dates[currentIndex + 1].date_checked.split('T')[0]);
+    }
+  };
+
+  const handleNextDate = () => {
+    if (currentIndex > 0) {
+      setSelectedDate(dates[currentIndex - 1].date_checked.split('T')[0]);
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto glass-panel rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-8 animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-800 pb-6">
@@ -163,22 +177,29 @@ export default function InventoryTab({ onBack }) {
         <>
           {/* Controls */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 bg-slate-950/40 p-4 rounded-xl border border-slate-800">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-indigo-400" />
-              <select 
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 font-bold outline-none focus:border-indigo-500"
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handlePreviousDate}
+                disabled={currentIndex === -1 || currentIndex >= dates.length - 1}
+                className="p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-400 hover:text-indigo-400 hover:border-indigo-500 disabled:opacity-50 disabled:pointer-events-none transition-all"
               >
-                {dates.length === 0 ? (
-                  <option value="">No logs found</option>
-                ) : (
-                  dates.map(d => {
-                    const dateStr = d.date_checked.split('T')[0];
-                    return <option key={dateStr} value={dateStr}>{dateStr}</option>;
-                  })
-                )}
-              </select>
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-lg px-6 py-2">
+                <Calendar className="w-5 h-5 text-indigo-400" />
+                <span className="text-slate-200 font-bold tracking-wider">
+                  {selectedDate || "No logs found"}
+                </span>
+              </div>
+
+              <button
+                onClick={handleNextDate}
+                disabled={currentIndex <= 0}
+                className="p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-400 hover:text-indigo-400 hover:border-indigo-500 disabled:opacity-50 disabled:pointer-events-none transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
             
             <button
