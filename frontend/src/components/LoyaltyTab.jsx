@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Gift, Award, CheckCircle, Car, UserCheck, Phone, CreditCard } from 'lucide-react';
+import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
 export default function LoyaltyTab({ onBack }) {
@@ -79,12 +80,7 @@ export default function LoyaltyTab({ onBack }) {
           </p>
         </div>
 
-        <button
-          onClick={onBack}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold transition-all text-xs tracking-wider uppercase active:scale-95 border border-slate-700/40"
-        >
-          Back to Dashboard
-        </button>
+        <BackButton onClick={onBack} label="Back to Dashboard" />
       </div>
 
       <div className="relative flex-grow mb-6">

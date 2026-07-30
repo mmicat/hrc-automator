@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Save, Trash2, ShieldAlert } from 'lucide-react';
+import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
 export default function RecordForm({ mode, editRecord, onBack }) {
@@ -172,13 +173,7 @@ export default function RecordForm({ mode, editRecord, onBack }) {
       
       {/* Header */}
       <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-5">
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-sm font-semibold"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
+        <BackButton onClick={onBack} label="Back to Dashboard" />
         <div>
           <h1 className={`text-2xl font-extrabold tracking-tight ${
             isEdit ? 'text-yellow-500 glow-text-yellow' : 'text-blue-500 glow-text-blue'

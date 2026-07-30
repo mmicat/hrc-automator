@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, Plus, Trash2, Filter, Calculator, 
   Calendar, FileText, CheckCircle, Tag, DollarSign, Loader2
 } from 'lucide-react';
+import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
 export default function AccountingTab({ onBack }) {
@@ -136,12 +137,7 @@ export default function AccountingTab({ onBack }) {
           </p>
         </div>
 
-        <button
-          onClick={onBack}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold transition-all text-xs tracking-wider uppercase shadow-lg border border-slate-700/40"
-        >
-          &larr; Back to Dashboard
-        </button>
+        <BackButton onClick={onBack} label="Back to Dashboard" />
       </div>
 
       {/* Tabs & Controls */}

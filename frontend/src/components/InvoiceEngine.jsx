@@ -3,6 +3,7 @@ import {
   ArrowLeft, FileText, CheckSquare, History, 
   Trash2, AlertTriangle, Calendar, User, Car, DollarSign 
 } from 'lucide-react';
+import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
 export default function InvoiceEngine({ 
@@ -171,13 +172,7 @@ export default function InvoiceEngine({
             </>
           )}
 
-          <button 
-            onClick={onBack} 
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-sm font-semibold ml-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
+          <BackButton onClick={onBack} label="Back to Dashboard" />
         </div>
       </div>
 
