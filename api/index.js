@@ -795,6 +795,54 @@ app.delete('/api/expenses/:id', isAuthenticated, async (req, res) => {
     }
 });
 
+// === INVENTORY ROUTES ===
+
+// Get distinct inventory dates
+app.get('/api/inventory/dates', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT DISTINCT date_checked FROM inventory_logs ORDER BY date_checked DESC");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get inventory log by date
+app.get('/api/inventory/log/:date', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM inventory_logs WHERE date_checked = ?", [req.params.date]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Save a new inventory log snapshot
+app.post('/api/inventory/log', isAuthenticated, async (req, res) => {
+    try {
+        const { date_checked, items } = req.body;
+        
+        if (!date_checked || !items || !Array.isArray(items)) {
+            return res.status(400).json({ error: "Invalid payload" });
+        }
+        
+        // Delete any existing entries for this date to fully replace the snapshot
+        await db.query("DELETE FROM inventory_logs WHERE date_checked = ?", [date_checked]);
+        
+        for (const item of items) {
+            await db.query(
+                "INSERT INTO inventory_logs (date_checked, category, item_name, quantity) VALUES (?, ?, ?, ?)",
+                [date_checked, item.category, item.item_name, parseInt(item.quantity) || 0]
+            );
+        }
+        
+        res.json({ success: true, message: "Inventory log saved successfully" });
+    } catch (err) {
+        console.error("Save inventory error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ 
