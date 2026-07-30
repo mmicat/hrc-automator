@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { ArrowLeft, Save, ShieldAlert, Printer } from 'lucide-react';
+import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
 export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
@@ -169,13 +170,7 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
       
       {/* Header */}
       <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-5">
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-sm font-semibold"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
+        <BackButton onClick={onBack} label="Back to Dashboard" />
         <div className="text-right">
           <h1 className="text-2xl font-extrabold text-orange-500 tracking-tight glow-text-orange">
             Overwrite & Reprint
@@ -194,7 +189,7 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
           <h2 className="text-lg font-bold text-slate-200 mb-4 border-l-4 border-orange-500 pl-2">
             Client Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Full Name</label>
               <input 
@@ -216,17 +211,6 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
                 placeholder="Phone Number"
                 className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-orange-500 text-sm font-medium"
                 required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Oil Card No</label>
-              <input 
-                type="text" 
-                value={oilCardNo}
-                onChange={(e) => setOilCardNo(e.target.value)}
-                placeholder="Optional Reference"
-                className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-orange-500 text-sm font-medium"
               />
             </div>
           </div>
@@ -302,13 +286,24 @@ export default function OverwriteJobCard({ jobNo, onBack, onShowPDF }) {
               />
             </div>
 
-            <div className="flex flex-col gap-1.5 md:col-span-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plate Number</label>
               <input 
                 type="text" 
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}
                 placeholder="Registration Plate"
+                className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-orange-500 text-sm font-medium"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Oil Card No</label>
+              <input 
+                type="text" 
+                value={oilCardNo}
+                onChange={(e) => setOilCardNo(e.target.value)}
+                placeholder="Optional Reference"
                 className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-orange-500 text-sm font-medium"
               />
             </div>
