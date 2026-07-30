@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Plus, LogOut, History, FileText,
-  Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift, DollarSign
+  Trash2, Edit, AlertTriangle, UserCheck, Car, Phone, Hash, Gift, DollarSign, Package
 } from 'lucide-react';
 import { useUI } from './UIContext';
 
@@ -128,6 +128,14 @@ export default function Dashboard({
           >
             <Gift className="w-4 h-4" />
             Loyalty
+          </button>
+
+          <button
+            onClick={() => onNavigate('inventory-tab')}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all text-xs tracking-wider uppercase shadow-lg shadow-indigo-950/20 active:scale-95"
+          >
+            <Package className="w-4 h-4" />
+            Inventory
           </button>
 
           <button

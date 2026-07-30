@@ -9,6 +9,7 @@ import InvoiceForm from './components/InvoiceForm';
 import PDFPreviewModal from './components/PDFPreviewModal';
 import LoyaltyTab from './components/LoyaltyTab';
 import AccountingTab from './components/AccountingTab';
+import InventoryTab from './components/InventoryTab';
 
 export default function App() {
   const [view, setView] = useState('loading');
@@ -58,6 +59,7 @@ export default function App() {
       'invoice-form': 'Invoice - ' + baseTitle,
       'loyalty-tab': 'Loyalty Cards - ' + baseTitle,
       'accounting-tab': 'Sales & Expenses - ' + baseTitle,
+      'inventory-tab': 'Inventory Tracking - ' + baseTitle,
     };
     document.title = viewTitles[view] || baseTitle;
   }, [view]);
@@ -227,6 +229,11 @@ export default function App() {
       case 'accounting-tab':
         return (
           <AccountingTab onBack={() => navigateTo('dashboard')} />
+        );
+
+      case 'inventory-tab':
+        return (
+          <InventoryTab onBack={() => navigateTo('dashboard')} />
         );
 
       default:
