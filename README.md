@@ -1,6 +1,6 @@
 # HRC Job Card Automator — System Documentation
 
-> **Version:** May 2026  
+> **Version:** May 2026 (Updated: August 2026)  
 > **Stack:** ReactJS (Vite) · Tailwind CSS v4 · Lucide Icons · Node.js · Express · MySQL  
 > **Hosted on:** Render (production) · can run locally via `npm start`
 
@@ -27,6 +27,7 @@
    - 4.13 [PDF Generation — Invoices](#413-pdf-generation--invoices)
    - 4.14 [Logout](#414-logout)
    - 4.15 [Loyalty Cards Tracking](#415-loyalty-cards-tracking)
+   - 4.16 [Inventory Tracking](#416-inventory-tracking)
 5. [API Reference](#5-api-reference)
 6. [Known Coordinates & PDF Mapping](#6-known-coordinates--pdf-mapping)
 7. [Deployment & Environment Variables](#7-deployment--environment-variables)
@@ -41,7 +42,9 @@ The system allows staff to:
 - Maintain a **client and vehicle database** without needing to create a job first
 - Generate **numbered Job Cards** with all relevant customer and vehicle data, printed directly onto a pre-designed PDF template
 - **Invoice** specific job cards with a dynamic line-item table, real-time totals, optional 5% VAT, and persistent storage
-- **Review** the full history of job cards and invoices
+- **Review** the full history of job cards, invoices, and accounting totals
+- **Track** loyalty visits (Oil Cards) separately per vehicle
+- **Log and Track** shop inventory records historically over time
 - **Correct** any record by overwriting and reprinting it
 
 ---
@@ -57,13 +60,14 @@ Located in the [frontend/](file:///d:/HRC-Automator/frontend) directory. It uses
 - **Tailwind CSS v4** for clean utility classes and custom layout styling
 - **Lucide Icons** (`lucide-react`) for premium vector system icons
 - **pdf-lib** for drawing data values directly onto static PDF templates inside the browser (avoiding expensive server round-trips)
+- **Custom React Hooks:** A specialized `useTableFilters` engine manages Excel-style column sorting, checking, and exclusion across all major tables.
 
 When built via `npm run build`, the React bundle compiles directly into the root [public/](file:///d:/HRC-Automator/public) folder.
 
 ### Backend (Express API)
 Located in the [api/](file:///d:/HRC-Automator/api) directory. It handles:
 - **Authentication** (login / logout with session management)
-- **All database queries** (customers, vehicles, job cards, invoices, invoice line items)
+- **All database queries** (customers, vehicles, job cards, invoices, invoice line items, inventory)
 - **Serving the static files** (serving the compiled React build from the root `public/` directory)
 
 ### Database
@@ -73,7 +77,7 @@ A **MySQL** database (`hrc_automator`) stores all permanent records. It is hoste
 
 ## 3. The Database — What Gets Stored
 
-The system uses five tables:
+The system uses six primary tables:
 
 ### `users`
 Stores login credentials. Passwords are encrypted as **bcrypt hashes**.
@@ -157,6 +161,49 @@ Line items belonging to an invoice. Deleted automatically when their parent invo
 
 ---
 
+### `inventory_logs`
+Historical snapshots of shop supplies and parts, logged by date.
+
+| Column | Type | Description |
+|---|---|---|
+| `log_date` | DATE (PK) | The date this snapshot was taken |
+| `diesel_qty` | INT | Diesel amount in gallons |
+| `atf_qty` | INT | ATF amount in gallons |
+| `engine_oil_*` | INT | Quantities of various engine oils |
+| `coolant_*` | INT | Quantities of coolant (gallons) |
+| `...parts` | INT | Quantities of brakes, filters, wiper blades, etc. |
+
+---
+
+### `sales`
+Historical log of accounting sales records.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK) | Auto-incrementing ID |
+| `date` | DATE | Date of the sale |
+| `description` | VARCHAR | Sales description |
+| `aed` | DECIMAL | Price per unit |
+| `quantity` | INT | Number of units |
+| `total` | DECIMAL | Total value (`aed * quantity`) |
+
+---
+
+### `expenses`
+Historical log of accounting expense records.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK) | Auto-incrementing ID |
+| `date` | DATE | Date of the expense |
+| `category` | VARCHAR | Expense category (e.g. Parts, Utilities) |
+| `description` | VARCHAR | Expense description |
+| `aed` | DECIMAL | Price per unit |
+| `quantity` | INT | Number of units |
+| `total` | DECIMAL | Total value (`aed * quantity`) |
+
+---
+
 ## 4. Feature Reference
 
 ### 4.1 Login & Session Security
@@ -167,7 +214,8 @@ Line items belonging to an invoice. Deleted automatically when their parent invo
 
 ### 4.2 Dashboard — Customer Overview
 - Displays a live, searchable list of all customer-vehicle pairs.
-- Searching runs instantly client-side, filtering by Name, Phone, Vehicle, or Plate.
+- Searching runs instantly client-side, filtering by Name, Phone, Vehicle, or Plate, with a dynamic active profile counter.
+- **Excel-Style Filters:** You can interact with headers to search, select, exclude, or sort specific unique values in a column.
 - **Create Job** pre-fills the Job Card form for that specific customer/vehicle.
 - **Edit** opens the edit form for customer/vehicle details.
 - Header actions let you jump to the Invoices Engine, add new records, delete the last job card, or overwrite a card.
@@ -188,13 +236,14 @@ Line items belonging to an invoice. Deleted automatically when their parent invo
 
 ### 4.6 Overwrite & Reprint a Job Card
 - Allows rewriting details on an existing job card and reprinting a new template while maintaining the original job card number.
+- Loyalty "Oil Card" records are attached to vehicle details within this view.
 
 ### 4.7 Delete Last Job Card (Dashboard)
 - Safe-deletes the highest `job_no` and resets the MySQL auto-increment counter to avoid number gaps.
 
-### 4.8 Invoices Engine — Tabbed History View
-- Swaps view between active Job Cards history (to select and invoice cards) and Invoice records history (to audit totals).
-- Top header action buttons adapt to the active tab.
+### 4.8 Invoices Engine & Accounting — History Views
+- **Invoices Engine:** Swaps view between active Job Cards history (to select and invoice cards) and Invoice records history (to audit totals).
+- **Accounting Tab:** Track Sales and Expenses. Uses inline column filtering to quickly narrow down expense categories, descriptions, or specific years, maintaining month-by-month grouped summary totals.
 
 ### 4.9 Generate Invoice
 - Input dynamic invoice entries (description, price, quantity, discount) with live calculations.
@@ -219,8 +268,11 @@ Line items belonging to an invoice. Deleted automatically when their parent invo
 ### 4.15 Loyalty Cards Tracking
 - **Dedicated Loyalty Tab**: Groups all loyalty oil cards by customer profile.
 - **Per-Car Tracking**: Customers with multiple vehicles have separate loyalty cards tracked per vehicle, ensuring accurate data.
-- **Search & Filter**: Find specific cards instantly by Name, Phone, Vehicle, or Card Number.
 - **Quick Logging**: A single-click `+1 Visit` action automatically saves redemption count increments to the database.
+
+### 4.16 Inventory Tracking
+- **Inventory Tab**: Log all shop supplies in custom dated snapshots.
+- **Pagination & Highlighting**: Switch between dates easily. Rows intelligently highlight when values hit zero, or when oils/coolants fall below the 4-gallon threshold.
 
 ---
 
@@ -256,6 +308,15 @@ All routes (except `/api/health` and `/api/login`) require an active authenticat
 | `GET` | `/api/loyalty-cards` | Fetch all vehicles with an assigned oil card grouped by client |
 | `PUT` | `/api/loyalty-cards/:vin_no/increment` | Increment the loyalty visit count for a specific vehicle |
 | `PUT` | `/api/loyalty-cards/:vin_no/update-visits` | Manually overwrite the loyalty visit count |
+| `GET` | `/api/inventory/dates` | Get list of logged inventory dates |
+| `GET` | `/api/inventory/log/:date` | Fetch inventory numbers for a specific date |
+| `POST` | `/api/inventory/log` | Create or update an inventory log |
+| `GET` | `/api/sales` | Fetch all sales records |
+| `POST` | `/api/sales` | Create a new sales record |
+| `DELETE` | `/api/sales/:id` | Delete a specific sales record |
+| `GET` | `/api/expenses` | Fetch all expense records |
+| `POST` | `/api/expenses` | Create a new expense record |
+| `DELETE` | `/api/expenses/:id` | Delete a specific expense record |
 
 ---
 
