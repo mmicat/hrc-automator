@@ -10,6 +10,7 @@ import PDFPreviewModal from './components/PDFPreviewModal';
 import LoyaltyTab from './components/LoyaltyTab';
 import AccountingTab from './components/AccountingTab';
 import InventoryTab from './components/InventoryTab';
+import SessionTimeout from './components/SessionTimeout';
 
 export default function App() {
   const [view, setView] = useState('loading');
@@ -256,6 +257,9 @@ export default function App() {
         downloadName={pdfDownloadName}
         onClose={handleClosePDF}
       />
+
+      {/* Global Session Timeout Monitor */}
+      {view !== 'loading' && view !== 'login' && <SessionTimeout />}
     </div>
   );
 }
