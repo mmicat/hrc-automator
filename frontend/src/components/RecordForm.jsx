@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Save, Trash2, ShieldAlert } from 'lucide-react';
+import { Search, Save, Trash2, ShieldAlert, ArrowRightLeft } from 'lucide-react';
 import BackButton from './BackButton';
 import { useUI } from './UIContext';
 
@@ -25,6 +25,11 @@ export default function RecordForm({ mode, editRecord, onBack }) {
   const [searchPhone, setSearchPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Transfer ownership (edit mode, existing vehicle only)
+  const [transferPhone, setTransferPhone] = useState('');
+  const [transferPreview, setTransferPreview] = useState(null);
+  const [transferring, setTransferring] = useState(false);
+
   // Setup form states when entering edit mode or resetting
   useEffect(() => {
     if (isEdit && editRecord) {
@@ -38,6 +43,8 @@ export default function RecordForm({ mode, editRecord, onBack }) {
       setYear(editRecord.year || '');
       setColor(editRecord.color || '');
       setRegNo(editRecord.reg_no || '');
+      setTransferPhone('');
+      setTransferPreview(null);
     } else {
       handleClear();
     }
@@ -55,6 +62,8 @@ export default function RecordForm({ mode, editRecord, onBack }) {
     setColor('');
     setRegNo('');
     setSearchPhone('');
+    setTransferPhone('');
+    setTransferPreview(null);
   };
 
   // Client Search in Add Mode
@@ -96,6 +105,71 @@ export default function RecordForm({ mode, editRecord, onBack }) {
       } catch (err) {
         console.error('Delete customer error:', err);
       }
+    }
+  };
+
+  const handleFindNewOwner = async () => {
+    if (!vinNo) {
+      showAlert('This record has no vehicle to transfer.', 'warning');
+      return;
+    }
+    if (!transferPhone.trim()) {
+      showAlert('Enter the new owner\'s phone number.', 'warning');
+      return;
+    }
+
+    setTransferring(true);
+    setTransferPreview(null);
+    try {
+      const res = await fetch('/api/transfer-vehicle/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vin_no: vinNo, phone_no: transferPhone.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert(data.error || 'Could not find that customer.', 'error');
+        return;
+      }
+      setTransferPreview(data);
+    } catch (err) {
+      console.error('Transfer preview error:', err);
+      showAlert('Could not look up that customer.', 'error');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!transferPreview) return;
+    const vehicleLabel = [transferPreview.vehicle.make, transferPreview.vehicle.model, transferPreview.vehicle.reg_no]
+      .filter(Boolean)
+      .join(' ');
+    const confirmMsg = `Transfer ${vehicleLabel} from ${transferPreview.from.full_name} to ${transferPreview.to.full_name} (${transferPreview.to.phone_no})? Past job cards stay with ${transferPreview.from.full_name}.`;
+    if (!(await showConfirm(confirmMsg))) return;
+
+    setTransferring(true);
+    try {
+      const res = await fetch('/api/transfer-vehicle', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vin_no: vinNo, phone_no: transferPhone.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert(data.error || 'Transfer failed.', 'error');
+        return;
+      }
+      const historyNote = data.job_cards_unchanged
+        ? ` ${data.job_cards_unchanged} existing job card${data.job_cards_unchanged === 1 ? '' : 's'} still show the previous owner.`
+        : '';
+      showAlert(`Ownership moved to ${data.to.full_name}.${historyNote}`, 'success');
+      onBack();
+    } catch (err) {
+      console.error('Transfer error:', err);
+      showAlert('An error occurred during the transfer.', 'error');
+    } finally {
+      setTransferring(false);
     }
   };
 
@@ -365,6 +439,55 @@ export default function RecordForm({ mode, editRecord, onBack }) {
             </div>
           </div>
         </div>
+
+        {isEdit && vinNo && (
+          <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowRightLeft className="w-4 h-4 text-yellow-500" />
+              <h2 className="text-sm font-bold text-slate-200">Transfer Ownership</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Moves this vehicle to another existing customer. Job cards and invoices stay with the owner they were created for.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+              <input
+                type="text"
+                value={transferPhone}
+                onChange={(e) => {
+                  setTransferPhone(e.target.value);
+                  setTransferPreview(null);
+                }}
+                placeholder="New owner's phone number"
+                className="flex-grow w-full bg-slate-950/60 border border-slate-800 rounded-xl py-2 px-4 text-slate-200 outline-none focus:border-yellow-500 text-sm font-medium"
+              />
+              <button
+                type="button"
+                onClick={handleFindNewOwner}
+                disabled={transferring}
+                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all h-[38px] active:scale-95 shrink-0"
+              >
+                <Search className="w-4 h-4" />
+                Find Owner
+              </button>
+            </div>
+            {transferPreview && (
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-yellow-900/40 bg-yellow-950/20 rounded-xl px-4 py-3">
+                <p className="text-sm text-slate-300">
+                  Move to <span className="font-bold text-yellow-400">{transferPreview.to.full_name}</span>
+                  <span className="text-slate-500"> · {transferPreview.to.phone_no}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={handleTransferOwnership}
+                  disabled={transferring}
+                  className="bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider shrink-0"
+                >
+                  {transferring ? 'Transferring...' : 'Confirm Transfer'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Submit Actions */}
         <div className="flex justify-end gap-3 mt-6 border-t border-slate-800 pt-6">
