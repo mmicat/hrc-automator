@@ -683,6 +683,120 @@ app.delete('/api/delete-vehicle/:vin_no', isAuthenticated, async (req, res) => {
     }
 });
 
+// Move a vehicle to an existing customer. Job cards keep the customer they were
+// written with, so invoices and reprints stay tied to the owner at the time.
+async function resolveTransfer(vinNo, phoneNo) {
+    const digits = String(phoneNo || '').replace(/\D/g, '');
+    if (!vinNo || !digits) {
+        return { status: 400, body: { error: "VIN and phone number are required" } };
+    }
+
+    const [vehicles] = await db.query(
+        `SELECT v.vin_no, v.make, v.model, v.year, v.reg_no, v.customer_id,
+                c.full_name, c.phone_no
+         FROM vehicles v
+         LEFT JOIN clients c ON c.customer_id = v.customer_id
+         WHERE v.vin_no = ?`,
+        [vinNo]
+    );
+    if (vehicles.length === 0) {
+        return { status: 404, body: { error: "Vehicle not found" } };
+    }
+
+    const [clients] = await db.query(
+        `SELECT customer_id, full_name, phone_no
+         FROM clients
+         WHERE REPLACE(REPLACE(REPLACE(phone_no, '-', ''), ' ', ''), '+', '') = ?`,
+        [digits]
+    );
+    if (clients.length === 0) {
+        return { status: 404, body: { error: "No customer found with that phone number. Add the customer first, then transfer." } };
+    }
+    if (clients.length > 1) {
+        return { status: 409, body: { error: "More than one customer uses that phone number." } };
+    }
+
+    const vehicle = vehicles[0];
+    const target = clients[0];
+    if (vehicle.customer_id === target.customer_id) {
+        return { status: 400, body: { error: "This vehicle is already registered to that customer." } };
+    }
+
+    const [jobRows] = await db.query(
+        "SELECT COUNT(*) AS job_count FROM job_cards WHERE vin_no = ?",
+        [vinNo]
+    );
+
+    return {
+        status: 200,
+        vehicle,
+        target,
+        jobCount: Number(jobRows[0].job_count)
+    };
+}
+
+app.post('/api/transfer-vehicle/preview', isAuthenticated, async (req, res) => {
+    try {
+        const { vin_no, phone_no } = req.body;
+        const result = await resolveTransfer(vin_no, phone_no);
+        if (result.status !== 200) return res.status(result.status).json(result.body);
+
+        res.json({
+            vehicle: {
+                vin_no: result.vehicle.vin_no,
+                make: result.vehicle.make,
+                model: result.vehicle.model,
+                year: result.vehicle.year,
+                reg_no: result.vehicle.reg_no
+            },
+            from: {
+                customer_id: result.vehicle.customer_id,
+                full_name: result.vehicle.full_name,
+                phone_no: result.vehicle.phone_no
+            },
+            to: result.target,
+            job_cards_unchanged: result.jobCount
+        });
+    } catch (error) {
+        console.error('Transfer preview error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/transfer-vehicle', isAuthenticated, async (req, res) => {
+    const conn = await db.getConnection();
+    let started = false;
+    try {
+        const { vin_no, phone_no } = req.body;
+        const result = await resolveTransfer(vin_no, phone_no);
+        if (result.status !== 200) return res.status(result.status).json(result.body);
+
+        await conn.beginTransaction();
+        started = true;
+        const [upd] = await conn.query(
+            "UPDATE vehicles SET customer_id = ? WHERE vin_no = ? AND customer_id = ?",
+            [result.target.customer_id, result.vehicle.vin_no, result.vehicle.customer_id]
+        );
+        if (upd.affectedRows !== 1) {
+            await conn.rollback();
+            return res.status(409).json({ error: "Vehicle ownership changed before the transfer completed. Refresh and try again." });
+        }
+        await conn.commit();
+
+        res.json({
+            message: "Vehicle ownership transferred",
+            to: result.target,
+            job_cards_unchanged: result.jobCount
+        });
+    } catch (error) {
+        if (started) await conn.rollback();
+        console.error('Transfer vehicle error:', error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        conn.release();
+    }
+});
+
 
 // --- LOYALTY ROUTES ---
 
